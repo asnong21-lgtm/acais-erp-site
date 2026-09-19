@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공간대관 신청 - 시민활동통합지원단</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="reservation">
+
+<div id="site-header-mount"></div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="crumb">공간대관</div>
+    <h1>대관신청</h1>
+  </div>
+</section>
+
+<section class="content">
+  <div class="wrap" style="max-width:760px;">
+
+    <div class="panel" style="margin-bottom:20px;">
+      <div class="block-head" style="margin-bottom:12px;">
+        <h2 style="font-size:15px;"><span class="dot"></span>공간안내</h2>
+      </div>
+      <div class="grid-5" id="space-info" style="grid-template-columns:repeat(3,1fr);"></div>
+    </div>
+
+    <div id="ok-alert" class="alert alert-ok" style="display:none;"></div>
+
+    <div class="panel">
+      <form id="rsv-form">
+        <div class="form-row">
+          <label>대관 공간 <span class="req">*</span></label>
+          <select id="f-space" required></select>
+        </div>
+        <div class="form-row">
+          <label>대관 일자 <span class="req">*</span></label>
+          <input type="date" id="f-date" required>
+        </div>
+        <div class="form-row">
+          <label>이용 시간 <span class="req">*</span></label>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="time" id="f-start" required>
+            <span>~</span>
+            <input type="time" id="f-end" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>신청자명 <span class="req">*</span></label>
+          <input type="text" id="f-name" required placeholder="이름 또는 단체명">
+        </div>
+        <div class="form-row">
+          <label>연락처 <span class="req">*</span></label>
+          <input type="tel" id="f-phone" required placeholder="010-0000-0000">
+        </div>
+        <div class="form-row">
+          <label>이메일</label>
+          <input type="email" id="f-email" placeholder="확인 회신을 받으실 이메일">
+        </div>
+        <div class="form-row">
+          <label>이용 인원</label>
+          <input type="number" id="f-people" min="1" placeholder="예: 10">
+        </div>
+        <div class="form-row">
+          <label>이용 목적 <span class="req">*</span></label>
+          <textarea id="f-purpose" required placeholder="대관 목적을 간단히 적어주세요"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">신청하기</button>
+        </div>
+        <p class="hint" style="text-align:center;">신청 후 담당자 확인을 거쳐 승인 여부가 안내됩니다. (영업일 기준 1~2일 소요)</p>
+      </form>
+    </div>
+
+  </div>
+</section>
+
+<div id="site-footer-mount"></div>
+
+<script src="assets/site.js"></script><script>
+document.addEventListener("DOMContentLoaded", () => {
+  mountLayout("reservation");
+
+  Api.getSpaces().then(spaces => {
+    document.getElementById("space-info").innerHTML = spaces.map(s => `
+      <div class="center-card">
+        <div class="name">${s.name}</div>
+        <div class="desc">${s.cap}</div>
+      </div>
+    `).join("");
+
+    const sel = document.getElementById("f-space");
+    sel.innerHTML = spaces.map(s => `<option value="${s.key}">${s.name}</option>`).join("");
+  });
+
+  document.getElementById("rsv-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const payload = {
+      space: document.getElementById("f-space").value,
+      date: document.getElementById("f-date").value,
+      start: document.getElementById("f-start").value,
+      end: document.getElementById("f-end").value,
+      name: document.getElementById("f-name").value,
+      phone: document.getElementById("f-phone").value,
+      email: document.getElementById("f-email").value,
+      people: document.getElementById("f-people").value,
+      purpose: document.getElementById("f-purpose").value,
+      submittedAt: new Date().toISOString(),
+    };
+    const result = await Api.submitReservation(payload);
+    const alertBox = document.getElementById("ok-alert");
+    alertBox.style.display = "block";
+    alertBox.textContent = "신청이 접수되었습니다. " + (result.message || "");
+    alertBox.scrollIntoView({ behavior: "smooth" });
+    e.target.reset();
+  });
+});
+</script>
+</body>
+</html>

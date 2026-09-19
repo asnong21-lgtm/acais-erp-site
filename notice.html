@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공지사항 - 시민활동통합지원단</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="notice">
+
+<div id="site-header-mount"></div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="crumb">소식·참여</div>
+    <h1>공지사항</h1>
+  </div>
+</section>
+
+<section class="content">
+  <div class="wrap">
+
+    <div id="list-view">
+      <div class="tabs" id="cat-tabs"></div>
+      <div class="notice-panel" id="notice-list"></div>
+    </div>
+
+    <div id="detail-view" style="display:none;">
+      <div class="panel">
+        <div class="detail-head">
+          <span class="notice-cat" id="d-cat"></span>
+          <h3 id="d-title" style="margin-top:10px;"></h3>
+          <div class="detail-meta">
+            <span id="d-date"></span>
+          </div>
+        </div>
+        <div class="detail-body" id="d-body"></div>
+      </div>
+      <div class="back-link" onclick="showList()">← 목록으로</div>
+    </div>
+
+  </div>
+</section>
+
+<div id="site-footer-mount"></div>
+
+<script src="assets/site.js"></script><script>
+  let allNotices = [];
+  let activeCat = "전체";
+
+  function renderList() {
+    const filtered = activeCat === "전체" ? allNotices : allNotices.filter(n => n.cat === activeCat);
+    document.getElementById("notice-list").innerHTML = filtered.map(n => `
+      <a class="notice-row" href="notice.html?id=${n.id}">
+        <span class="notice-cat">${n.cat}</span>
+        <span class="notice-title">${n.title}</span>
+        <span class="notice-date">${n.date}</span>
+      </a>
+    `).join("") || `<div class="notice-row"><span class="notice-title">해당 분류의 게시글이 없습니다.</span></div>`;
+  }
+
+  function renderTabs() {
+    const cats = ["전체", ...new Set(allNotices.map(n => n.cat))];
+    document.getElementById("cat-tabs").innerHTML = cats.map(c => `
+      <button class="tab-btn ${c === activeCat ? "active" : ""}" onclick="setCat('${c}')">${c}</button>
+    `).join("");
+  }
+
+  function setCat(c) {
+    activeCat = c;
+    renderTabs();
+    renderList();
+  }
+
+  function showList() {
+    history.replaceState(null, "", "notice.html");
+    document.getElementById("list-view").style.display = "block";
+    document.getElementById("detail-view").style.display = "none";
+  }
+
+  function showDetail(id) {
+    const n = allNotices.find(x => x.id === id);
+    if (!n) return showList();
+    document.getElementById("d-cat").textContent = n.cat;
+    document.getElementById("d-title").textContent = n.title;
+    document.getElementById("d-date").textContent = n.date;
+    document.getElementById("d-body").textContent = n.body;
+    document.getElementById("list-view").style.display = "none";
+    document.getElementById("detail-view").style.display = "block";
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    mountLayout("notice");
+    Api.getNotices().then(list => {
+      allNotices = list;
+      renderTabs();
+      renderList();
+
+      const params = new URLSearchParams(location.search);
+      const id = Number(params.get("id"));
+      if (id) showDetail(id);
+    });
+  });
+</script>
+</body>
+</html>
