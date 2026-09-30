@@ -76,11 +76,11 @@
 
     const centerGrid = document.getElementById("center-grid");
     centerGrid.innerHTML = MOCK_CENTERS.map(c => `
-      <div class="center-card">
+      <a class="center-card" href="centers.html#${c.key}">
         <div class="icon">${c.icon}</div>
         <div class="name">${c.name}</div>
         <div class="desc">${c.desc}</div>
-      </div>
+      </a>
     `).join("");
 
     Api.getNotices().then(list => {

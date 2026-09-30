@@ -158,11 +158,14 @@ section.block{ padding:44px 0; }
 @media (max-width:960px){ .grid-5{ grid-template-columns:repeat(2,1fr); } }
 
 .center-card{
+  display:block;
   background:var(--panel);
   border:1px solid var(--line);
   border-radius:14px;
   padding:20px 16px;
   text-align:center;
+  text-decoration:none;
+  color:inherit;
   transition:.15s;
 }
 .center-card:hover{ border-color:var(--teal); box-shadow:0 6px 18px rgba(22,50,79,.08); transform:translateY(-2px); }

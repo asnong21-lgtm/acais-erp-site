@@ -20,7 +20,7 @@ CONFIG.useMock = CONFIG.useMock || !CONFIG.API_BASE;
 
 const NAV_ITEMS = [
   { key: "intro", label: "지원단소개", href: "index.html#intro" },
-  { key: "centers", label: "센터별안내", href: "index.html#centers" },
+  { key: "centers", label: "센터별안내", href: "centers.html" },
   { key: "notice", label: "소식·참여", href: "notice.html" },
   { key: "reservation", label: "공간대관", href: "reservation.html" },
   { key: "disclosure", label: "정보공개", href: "disclosure.html" },

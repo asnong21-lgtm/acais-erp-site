@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>센터별안내 - 시민활동통합지원단</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="centers">
+
+<div id="site-header-mount"></div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="crumb">센터별안내</div>
+    <h1>5개 센터가 안성시 곳곳의 시민활동을 지원합니다</h1>
+  </div>
+</section>
+
+<section class="content">
+  <div class="wrap">
+    <div class="tabs" id="center-tabs"></div>
+    <div id="center-detail"></div>
+  </div>
+</section>
+
+<div id="site-footer-mount"></div>
+
+<script src="assets/site.js"></script>
+<script>
+const CENTER_DETAIL = {
+  public: {
+    icon: "🤝",
+    name: "공익활동지원센터",
+    tagline: "시민의 자발적인 공익활동을 발굴하고, 함께 성장할 수 있도록 지원합니다",
+    intro: "공익활동지원센터는 시민들이 스스로 지역의 문제를 찾아 해결해나가는 공익활동을 발굴·지원하는 곳입니다. 시민 누구나 활용할 수 있는 공유공간을 운영하고, 공익활동가의 역량을 키우는 교육 프로그램을 진행합니다.",
+    programs: [
+      { name: "공익 ON 스쿨", desc: "공익활동가로 성장하고 싶은 시민을 위한 역량강화 교육 과정" },
+      { name: "공유공간 대관·임대", desc: "가치공도 등 공동체 거점공간의 대관 및 공유사무실 임대 운영" },
+      { name: "공익활동 공모사업", desc: "시민이 직접 기획한 공익활동에 대한 자금·컨설팅 지원" },
+      { name: "시민동아리 지원", desc: "지속적인 공익활동을 이어가는 시민 동아리 발굴·육성" },
+    ],
+  },
+  village: {
+    icon: "🏘️",
+    name: "마을공동체지원센터",
+    tagline: "이웃과 함께 만들어가는 마을, 그 시작을 응원합니다",
+    intro: "마을공동체지원센터는 주민들이 서로 소통하고 협력하며 살기 좋은 마을을 만들어갈 수 있도록 돕습니다. 마을 단위의 작은 모임부터 마을기업으로의 성장까지, 공동체가 자라나는 전 과정을 함께합니다.",
+    programs: [
+      { name: "마을공동체 활성화 프로그램", desc: "주민 공동학습, 마을잔치 등 공동체 형성을 위한 프로그램 운영" },
+      { name: "마을학습동아리 지원", desc: "주민이 자발적으로 꾸리는 학습·취미 동아리 활동 지원" },
+      { name: "주민제안사업", desc: "주민이 직접 제안하고 실행하는 마을 문제해결 프로젝트 지원" },
+      { name: "마을기업 발굴·육성", desc: "지역자원을 활용한 마을기업의 설립과 안정적 운영을 지원" },
+    ],
+  },
+  social: {
+    icon: "🌱",
+    name: "사회적경제지원센터",
+    tagline: "사회적 가치를 실현하는 조직의 성장을 함께 만듭니다",
+    intro: "사회적경제지원센터는 협동조합, 사회적기업, 마을기업 등 사회적경제 조직의 설립부터 성장까지를 지원합니다. 안정적인 판로 개척과 소비자와의 접점 확대를 통해 지역 사회적경제 생태계를 키워갑니다.",
+    programs: [
+      { name: "사회적경제 나눔장터", desc: "지역 사회적경제 조직의 제품·서비스를 알리는 판매·홍보 행사" },
+      { name: "마을기업 지정 지원", desc: "경기도 마을기업 지정을 위한 컨설팅 및 행정 지원" },
+      { name: "판로개척 지원", desc: "백화점 팝업 등 사회적경제 조직의 새로운 판로 확보 지원" },
+      { name: "사회적경제 현황조사·성장진단", desc: "지역 사회적경제 조직 현황 파악과 성장 단계별 진단·컨설팅" },
+    ],
+  },
+  rural: {
+    icon: "🚜",
+    name: "도농교류지원센터",
+    tagline: "도시와 농촌이 서로 배우고 연결되는 다리가 됩니다",
+    intro: "도농교류지원센터는 도시와 농촌 주민 간의 교류를 촉진하고, 농산어촌 지역의 자립적인 발전을 지원합니다. 체험과 교류를 통해 도시민에게는 농촌의 가치를, 농촌 주민에게는 새로운 활력을 전합니다.",
+    programs: [
+      { name: "일반농산어촌개발사업", desc: "농산어촌 지역 기반시설 조성 및 주민 역량강화 사업" },
+      { name: "농촌체험마을 운영", desc: "도시민이 농촌의 생활과 문화를 체험할 수 있는 프로그램 운영" },
+      { name: "도농공동체 시범아파트 조성", desc: "도시 아파트 단지와 농촌 마을을 잇는 상생 프로그램" },
+      { name: "면 단위 주민 공동학습", desc: "읍면 지역 주민의 역량강화를 위한 공동학습 프로그램" },
+    ],
+  },
+  regen: {
+    icon: "🏙️",
+    name: "도시재생지원센터",
+    tagline: "낡은 도심에 다시 사람과 활력이 모이도록 돕습니다",
+    intro: "도시재생지원센터는 쇠퇴한 구도심과 노후 주거지역에 새로운 활력을 불어넣는 도시재생 사업을 지원합니다. 주민협의체와 함께 지역의 특성을 살린 재생 방향을 만들어갑니다.",
+    programs: [
+      { name: "도시재생사업 지원", desc: "정부·경기도 도시재생사업 발굴부터 실행까지 전 과정 지원" },
+      { name: "주민협의체 운영", desc: "재생사업 지역 주민이 직접 참여하는 협의체 구성·운영 지원" },
+      { name: "재생사업 컨설팅", desc: "사업 기획, 주민 의견수렴, 행정절차 등 전문 컨설팅 제공" },
+      { name: "거점공간 조성·운영", desc: "재생지역 내 주민 커뮤니티 거점공간 조성 및 운영 지원" },
+    ],
+  },
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  mountLayout("centers");
+
+  const tabsEl = document.getElementById("center-tabs");
+  const detailEl = document.getElementById("center-detail");
+  const keys = Object.keys(CENTER_DETAIL);
+
+  function render(key) {
+    const c = CENTER_DETAIL[key];
+    tabsEl.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.key === key));
+    detailEl.innerHTML = `
+      <div class="panel" style="margin-bottom:20px;">
+        <div style="display:flex; align-items:center; gap:14px; margin-bottom:10px;">
+          <div class="icon" style="width:52px; height:52px; border-radius:14px; background:var(--teal-bg); color:var(--teal); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0;">${c.icon}</div>
+          <div>
+            <h2 style="margin:0; font-size:20px;">${c.name}</h2>
+            <div style="color:var(--sub); font-size:13px; margin-top:2px;">${c.tagline}</div>
+          </div>
+        </div>
+        <p style="font-size:14px; line-height:1.8; color:var(--ink); margin:14px 0 0;">${c.intro}</p>
+      </div>
+      <div class="block-head" style="margin-bottom:14px;">
+        <h2 style="font-size:16px;"><span class="dot"></span>주요사업</h2>
+      </div>
+      <div class="quick-grid">
+        ${c.programs.map(p => `
+          <div class="quick-card">
+            <h3>${p.name}</h3>
+            <p>${p.desc}</p>
+          </div>
+        `).join("")}
+      </div>
+    `;
+    history.replaceState(null, "", "centers.html#" + key);
+  }
+
+  tabsEl.innerHTML = keys.map(k => `<button class="tab-btn" data-key="${k}">${CENTER_DETAIL[k].icon} ${CENTER_DETAIL[k].name}</button>`).join("");
+  tabsEl.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => render(b.dataset.key)));
+
+  const initial = keys.includes(location.hash.replace("#", "")) ? location.hash.replace("#", "") : keys[0];
+  render(initial);
+});
+</script>
+</body>
+</html>
