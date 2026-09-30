@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지원단소개 - 시민활동통합지원단</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="intro">
+
+<div id="site-header-mount"></div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="crumb">지원단소개</div>
+    <h1>시민활동통합지원단을 소개합니다</h1>
+  </div>
+</section>
+
+<section class="content">
+  <div class="wrap">
+    <div class="tabs" id="intro-tabs"></div>
+    <div id="intro-detail"></div>
+  </div>
+</section>
+
+<div id="site-footer-mount"></div>
+
+<script src="assets/site.js"></script>
+<script>
+const INTRO_SECTIONS = {
+  greeting: {
+    label: "인사말",
+    render: () => `
+      <div class="panel">
+        <h2 style="margin-top:0; font-size:18px;">안녕하십니까, 시민활동통합지원단입니다.</h2>
+        <div style="font-size:14px; line-height:2; color:var(--ink);">
+          시민활동통합지원단은 안성시민 여러분의 자발적인 활동이 지역의 변화로 이어질 수 있도록 돕기 위해 만들어진 조직입니다.
+          공익활동, 마을공동체, 사회적경제, 도농교류, 도시재생 다섯 분야에서 각 센터가 현장을 지키고,
+          사무국은 이 다섯 센터를 하나로 잇는 역할을 합니다.<br><br>
+          저희는 시민 한 분 한 분의 작은 시도가 결코 작지 않다고 믿습니다. 마을의 문제를 함께 고민하는 주민모임 하나,
+          지역에서 사회적 가치를 실현하려는 조직 하나가 안성의 내일을 바꿀 수 있다고 생각합니다.
+          시민활동통합지원단은 그 시도들이 지치지 않고 계속될 수 있도록, 예산과 행정으로는 든든하게 뒷받침하고
+          현장에서는 함께 걸어가겠습니다.<br><br>
+          앞으로도 행정과 시민이 권한과 책임을 나누어가는 성숙한 거버넌스를 안성에서 만들어가겠습니다.
+          많은 관심과 참여 부탁드립니다.
+        </div>
+        <div style="margin-top:22px; text-align:right; font-size:14px; font-weight:700; color:var(--navy);">
+          시민활동통합지원단장 드림
+        </div>
+      </div>
+    `,
+  },
+  vision: {
+    label: "비전 & 목표",
+    render: () => `
+      <div class="panel" style="margin-bottom:20px; text-align:center;">
+        <div style="font-size:12px; color:var(--sub); font-weight:700; margin-bottom:8px;">VISION</div>
+        <div style="font-size:20px; font-weight:800; color:var(--navy);">시민과 함께 성장하는 안성, 함께 만드는 거버넌스</div>
+      </div>
+      <div class="quick-grid">
+        <div class="quick-card">
+          <h3>① 참여 주체의 성장 지원</h3>
+          <p>개인·단체·기업·마을공동체가 스스로 성장할 수 있도록 컨설팅과 자금, 교육을 지원합니다.</p>
+        </div>
+        <div class="quick-card">
+          <h3>② 지역사회 문제 해결</h3>
+          <p>시민이 발굴한 지역 문제를 사업화하고, 실질적인 해결로 이어지도록 돕습니다.</p>
+        </div>
+        <div class="quick-card">
+          <h3>③ 행정-시민 거버넌스 완성</h3>
+          <p>운영위원회와 협의체를 통해 행정과 시민이 권한과 책임을 함께 나누는 구조를 만들어갑니다.</p>
+        </div>
+      </div>
+    `,
+  },
+  programs: {
+    label: "주요사업",
+    render: () => `
+      <div class="grid-5" id="intro-center-grid" style="margin-bottom:18px;"></div>
+      <p style="text-align:center; font-size:12.5px; color:var(--sub);">
+        센터별 세부 사업은 <a href="centers.html" style="color:var(--navy); text-decoration:underline;">센터별안내</a> 페이지에서 확인하실 수 있습니다.
+      </p>
+    `,
+    after: () => {
+      const el = document.getElementById("intro-center-grid");
+      if (el) {
+        el.innerHTML = MOCK_CENTERS.map(c => `
+          <a class="center-card" href="centers.html#${c.key}">
+            <div class="icon">${c.icon}</div>
+            <div class="name">${c.name}</div>
+            <div class="desc">${c.desc}</div>
+          </a>
+        `).join("");
+      }
+    },
+  },
+  orgchart: {
+    label: "조직도",
+    render: () => `
+      <div class="panel">
+        <div class="orgchart">
+          <div class="orgchart-box top">
+            <div class="role">대표</div>
+            <div class="name">시민활동통합지원단장</div>
+          </div>
+          <div class="orgchart-vline"></div>
+          <div class="orgchart-row">
+            ${[
+              { name: "사무국", desc: "인사복무관리·홍보·연구조사", n: 2 },
+              { name: "공익활동지원센터", n: 2 },
+              { name: "마을공동체지원센터", n: 4 },
+              { name: "사회적경제지원센터", n: 2 },
+              { name: "도농교류지원센터", n: 2 },
+              { name: "도시재생지원센터", n: 2 },
+            ].map(u => `
+              <div class="orgchart-box">
+                <div class="name">${u.name}</div>
+                ${u.desc ? `<div class="role">${u.desc}</div>` : ""}
+                <div class="count">${u.n}명</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+        <p style="text-align:center; font-size:12px; color:var(--sub); margin-top:18px;">
+          대표 1명 · 사무국 2명 · 5개 센터 10명 — 총 15명
+        </p>
+      </div>
+    `,
+  },
+  facility: {
+    label: "시설안내",
+    render: () => `
+      <div class="quick-grid">
+        <div class="quick-card">
+          <h3>공유공간 대회의실</h3>
+          <p>최대 40명 · 회의·설명회·교육 등에 활용할 수 있는 공간입니다.</p>
+        </div>
+        <div class="quick-card">
+          <h3>공유공간 소회의실</h3>
+          <p>최대 12명 · 소규모 회의나 상담에 적합한 공간입니다.</p>
+        </div>
+        <div class="quick-card">
+          <h3>미디어창작실</h3>
+          <p>최대 8명 · 영상·콘텐츠 제작 장비를 갖춘 공간입니다.</p>
+        </div>
+      </div>
+      <div style="text-align:center; margin-top:20px;">
+        <a href="reservation.html" class="btn btn-primary">공간대관 신청하기</a>
+      </div>
+    `,
+  },
+  directions: {
+    label: "오시는 길",
+    render: () => `
+      <div class="panel">
+        <dl class="info-list">
+          <div class="row"><dt>주소</dt><dd>경기도 안성시 시청길 25(봉산동) — 정확한 사무공간 위치는 추후 안내드리겠습니다</dd></div>
+          <div class="row"><dt>대표전화</dt><dd>031-678-2114</dd></div>
+          <div class="row"><dt>이용시간</dt><dd>평일 09:00 ~ 18:00 (주말·공휴일 휴무)</dd></div>
+          <div class="row"><dt>대중교통</dt><dd>안성시내 시내버스 이용 후 도보 이동 (자세한 노선은 각 센터로 문의해주세요)</dd></div>
+        </dl>
+      </div>
+    `,
+  },
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  mountLayout("intro");
+
+  const tabsEl = document.getElementById("intro-tabs");
+  const detailEl = document.getElementById("intro-detail");
+  const keys = Object.keys(INTRO_SECTIONS);
+
+  function render(key) {
+    const s = INTRO_SECTIONS[key];
+    tabsEl.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.key === key));
+    detailEl.innerHTML = s.render();
+    if (s.after) s.after();
+    history.replaceState(null, "", "intro.html#" + key);
+  }
+
+  tabsEl.innerHTML = keys.map(k => `<button class="tab-btn" data-key="${k}">${INTRO_SECTIONS[k].label}</button>`).join("");
+  tabsEl.querySelectorAll(".tab-btn").forEach(b => b.addEventListener("click", () => render(b.dataset.key)));
+
+  const initial = keys.includes(location.hash.replace("#", "")) ? location.hash.replace("#", "") : keys[0];
+  render(initial);
+});
+</script>
+</body>
+</html>

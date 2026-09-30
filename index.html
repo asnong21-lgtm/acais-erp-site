@@ -72,7 +72,7 @@
   // Firebase 연동 모듈(있다면)이 window.Api를 먼저 교체할 시간을 주기 위해
   // DOMContentLoaded 시점(모듈 스크립트 실행 이후)에 데이터를 불러온다.
   document.addEventListener("DOMContentLoaded", () => {
-    mountLayout("intro");
+    mountLayout("home");
 
     const centerGrid = document.getElementById("center-grid");
     centerGrid.innerHTML = MOCK_CENTERS.map(c => `

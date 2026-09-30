@@ -428,6 +428,41 @@ table.admin-table tr:last-child td{ border-bottom:none; }
 }
 .empty-row{ text-align:center; color:var(--sub); padding:30px !important; }
 
+/* 조직도 */
+.orgchart{ display:flex; flex-direction:column; align-items:center; padding:20px 0 8px; }
+.orgchart-box{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px 20px;
+  text-align:center;
+  min-width:140px;
+}
+.orgchart-box.top{ background:var(--navy); color:#fff; border-color:var(--navy); }
+.orgchart-box .role{ font-size:11px; color:var(--sub); margin-bottom:2px; }
+.orgchart-box.top .role{ color:#cdddec; }
+.orgchart-box .name{ font-weight:700; font-size:14px; }
+.orgchart-box .count{ font-size:11px; color:var(--accent); font-weight:700; margin-top:4px; }
+.orgchart-vline{ width:1px; height:22px; background:var(--line); }
+.orgchart-row{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:14px;
+  position:relative;
+  padding-top:22px;
+  border-top:1px solid var(--line);
+  margin-top:0;
+  width:100%;
+}
+
+/* 인포 리스트 (오시는 길 등) */
+.info-list{ font-size:13.5px; }
+.info-list .row{ display:flex; gap:16px; padding:10px 0; border-bottom:1px solid var(--line); }
+.info-list .row:last-child{ border-bottom:none; }
+.info-list .row dt{ width:90px; flex-shrink:0; color:var(--sub); font-weight:700; }
+.info-list .row dd{ margin:0; }
+
 .badge-tag{
   display:inline-block;
   font-size:10px;
