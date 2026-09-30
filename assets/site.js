@@ -11,8 +11,8 @@ const CONFIG = {
   // ERP 데이터 시트: https://docs.google.com/spreadsheets/d/1G1C1Xvn13Fqi_S-6uTcmQ4u4j3IURx1TIKXg3oMoGsQ/edit
   // 위 시트에서 Apps Script(apps-script/Code.gs)를 배포한 뒤, 그 웹앱 URL을 아래에 입력하면
   // useMock 값과 상관없이 자동으로 실제 데이터로 전환됩니다.
-  API_BASE: "",
-  useMock: true,
+  API_BASE: "https://script.google.com/macros/s/AKfycbymsLGlQ04MZPDrMO8K9wCpQmaVY-SBWSO3zJIpYHM8EWnyaj7taTjCSWadnqz9EQXo/exec",
+  useMock: false,
   orgName: "시민활동통합지원단",
   orgNameShort: "지원단",
 };
