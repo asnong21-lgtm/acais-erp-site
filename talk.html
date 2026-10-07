@@ -62,6 +62,15 @@
   .bubble{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:8px 12px; font-size:13.5px; line-height:1.55; white-space:pre-wrap; word-break:break-word; }
   .msg.mine .bubble{ background:#fff4c2; border-color:#f1e19a; }
   .bubble.deleted{ color:var(--sub); font-style:italic; background:#f1f2f4; }
+  .bubble.photo{ padding:4px; background:#fff; }
+  .att-img{ display:block; max-width:240px; max-height:300px; min-width:80px; min-height:60px; border-radius:9px; cursor:zoom-in; background:#e7ebf0; object-fit:cover; }
+  .att-file{ display:flex; align-items:center; gap:10px; border:0; background:none; font:inherit; text-align:left; cursor:pointer; padding:2px 0; color:var(--ink); max-width:260px; }
+  .att-file .ico{ font-size:24px; flex:0 0 auto; }
+  .att-file .nm{ font-weight:700; font-size:13px; word-break:break-all; }
+  .att-file .sz{ font-size:11px; color:var(--sub); margin-top:2px; }
+  .att-caption{ margin-top:6px; }
+  .attach-btn{ width:40px; padding:0; justify-content:center; font-size:18px; background:#eef2f6; color:var(--navy); border:1px solid var(--line); }
+  .talk-main.dragover .chat-body{ outline:3px dashed var(--teal); outline-offset:-8px; background:#eef8f5; }
   .msg.system .bubble{ background:#fffbe6; border:1px dashed #e0c200; }
   .msg .meta{ font-size:10.5px; color:var(--sub); white-space:nowrap; display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
   .msg:not(.mine) .meta{ align-items:flex-start; }
@@ -81,6 +90,12 @@
     .msg .row{ max-width:88%; }
     .talk-sub{ display:none; }
     .talk-header .wrap{ flex-wrap:wrap; gap:4px 12px; padding:0 16px; }
+    .talk-header .logo{ white-space:normal !important; display:flex; flex-wrap:wrap; align-items:center; gap:2px 12px; }
+    .talk-header .logo a{ margin-left:0 !important; }
+    body{ overflow-x:hidden; }
+    .att-img{ max-width:200px; }
+    .att-file{ max-width:200px; }
+    .hint{ display:none; }
   }
   .back-btn{ display:none; border:0; background:none; font:inherit; font-size:18px; margin-right:8px; cursor:pointer; color:var(--navy); }
 </style>
@@ -130,10 +145,13 @@
     <div id="chat-input-wrap" style="display:none;">
       <div class="chat-err" id="chat-err"></div>
       <div class="chat-input">
+        <button class="btn attach-btn" id="attach-btn" title="사진·파일 보내기">📎</button>
+        <input type="file" id="file-input" multiple hidden
+          accept="image/*,.pdf,.hwp,.hwpx,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip">
         <textarea id="chat-text" rows="1" placeholder="메시지 입력"></textarea>
         <button class="btn btn-primary" id="send-btn">보내기</button>
       </div>
-      <div class="hint">Enter 보내기 · Shift+Enter 줄바꿈 · 아무도 읽기 전에는 내가 보낸 메시지를 지울 수 있어요</div>
+      <div class="hint">Enter 보내기 · Shift+Enter 줄바꿈 · 📎 사진·파일(한글·PDF·오피스, 20MB까지) · 아무도 읽기 전에는 내가 보낸 메시지를 지울 수 있어요</div>
     </div>
   </main>
 </div>
@@ -296,7 +314,7 @@
     if (!current || !current.roomId) return;
     const roomId = current.roomId;
     const [msgRes, memRes] = await Promise.all([
-      sb.from("talk_messages").select("id,sender_id,body,created_at,deleted_at")
+      sb.from("talk_messages").select("id,sender_id,body,created_at,deleted_at,file_path,file_name,file_size,file_type")
         .eq("room_id", roomId).order("created_at", { ascending: false }).limit(200),
       sb.from("talk_members").select("user_id,last_read_at").eq("room_id", roomId),
     ]);
@@ -312,6 +330,7 @@
       return {
         id: m.id, from: m.sender_id || "", fromName: m.sender_id ? (names[m.sender_id] || "(나간 사람)") : "알림",
         text: m.body, at, deleted, mine,
+        file: m.file_path ? { path: m.file_path, name: m.file_name || "파일", size: m.file_size || 0, type: m.file_type || "", image: /^image\//.test(m.file_type || "") } : null,
         // 내가 보냈고, 아직 아무도 안 읽었을 때만 (최종 판단은 서버가 다시 한다)
         canDelete: mine && !deleted && others.every(o => ts(o.last_read_at) < at),
       };
@@ -330,13 +349,15 @@
       html += `<div class="msg ${cls}">
         ${showWho ? `<div class="who">${esc(m.fromName)}</div>` : ""}
         <div class="row">
-          <div class="bubble ${m.deleted ? "deleted" : ""}">${m.deleted ? "삭제된 메시지입니다" : esc(m.text)}</div>
+          <div class="bubble ${m.deleted ? "deleted" : ""} ${m.file && m.file.image && !m.text ? "photo" : ""}">${m.deleted ? "삭제된 메시지입니다" : attachHtml(m.file) + (m.text ? (m.file ? `<div class="att-caption">${esc(m.text)}</div>` : esc(m.text)) : "")}</div>
           <div class="meta">${m.canDelete ? `<button class="del-btn" data-del="${esc(m.id)}">지우기</button>` : ""}<span>${hm(m.at)}</span></div>
         </div>
       </div>`;
     });
     body.innerHTML = html;
     body.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => deleteMsg(b.dataset.del)));
+    body.querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => openFile(el.dataset.open, el.dataset.name, el.dataset.dl === "1")));
+    fillImages(body);
     if (scrollToEnd || nearEnd) body.scrollTop = body.scrollHeight;
 
     // 읽음 처리: 보고 있는 방에 안읽음이 있으면 서버에 알린다
@@ -349,10 +370,139 @@
 
   async function deleteMsg(id) {
     if (!confirm("이 메시지를 지울까요? (대화에는 「삭제된 메시지입니다」로 남습니다)")) return;
-    const { error } = await sb.rpc("talk_delete", { p_id: id });
+    const { data: path, error } = await sb.rpc("talk_delete", { p_id: id });
     if (error) alert(sbErr(error));
+    else if (path) await sb.storage.from("talk-files").remove([path]).catch(() => {});
     await refresh(false);
   }
+
+  /* ── 사진·파일 첨부 ──
+   * 저장소 talk-files 의 「방ID/임의이름.확장자」 에 올리고, 메시지에는 원래 이름을 적는다.
+   * 사진·파일 주소는 1시간짜리 임시 주소(서명 URL)라 볼 때마다 새로 받는다 (주소가 밖으로 퍼져도 곧 끊김). */
+  const ALLOWED_EXT = ["jpg","jpeg","png","gif","webp","heic","heif","pdf","hwp","hwpx","doc","docx","xls","xlsx","ppt","pptx","txt","csv","zip"];
+  const MAX_BYTES = 20 * 1024 * 1024;
+  const urlCache = {};   // path -> { url, exp }
+  const extOf = name => (String(name).match(/\.([A-Za-z0-9]+)$/) || [, ""])[1].toLowerCase();
+  function sizeText(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round(n / 1024)) + "KB"; }
+  function fileIcon(name) {
+    const e = extOf(name);
+    if (e === "hwp" || e === "hwpx") return "📝";
+    if (e === "pdf") return "📕";
+    if (["xls", "xlsx", "csv"].includes(e)) return "📊";
+    if (["ppt", "pptx"].includes(e)) return "📽️";
+    if (e === "zip") return "🗜️";
+    return "📄";
+  }
+  function attachHtml(f) {
+    if (!f) return "";
+    if (f.image) return `<img class="att-img" data-img="${esc(f.path)}" data-open="${esc(f.path)}" data-name="${esc(f.name)}" alt="${esc(f.name)}">`;
+    return `<button class="att-file" data-open="${esc(f.path)}" data-name="${esc(f.name)}" data-dl="1" title="눌러서 받기">
+      <span class="ico">${fileIcon(f.name)}</span><span><div class="nm">${esc(f.name)}</div><div class="sz">${sizeText(f.size)} · 눌러서 받기</div></span></button>`;
+  }
+  async function signedUrl(path, downloadName) {
+    if (!downloadName) {
+      const c = urlCache[path];
+      if (c && c.exp > Date.now()) return c.url;
+    }
+    const { data, error } = await sb.storage.from("talk-files").createSignedUrl(path, 3600, downloadName ? { download: downloadName } : undefined);
+    if (error) throw error;
+    if (!downloadName) urlCache[path] = { url: data.signedUrl, exp: Date.now() + 50 * 60 * 1000 };
+    return data.signedUrl;
+  }
+  async function fillImages(root) {
+    const imgs = [...root.querySelectorAll("img[data-img]")];
+    const need = [...new Set(imgs.map(i => i.dataset.img).filter(p => !(urlCache[p] && urlCache[p].exp > Date.now())))];
+    if (need.length) {
+      const { data } = await sb.storage.from("talk-files").createSignedUrls(need, 3600);
+      (data || []).forEach(d => { if (d.signedUrl) urlCache[d.path] = { url: d.signedUrl, exp: Date.now() + 50 * 60 * 1000 }; });
+    }
+    imgs.forEach(i => {
+      const c = urlCache[i.dataset.img];
+      if (c) {
+        i.onload = () => { const b = $("chat-body"); if (b.scrollHeight - b.scrollTop - b.clientHeight < 400) b.scrollTop = b.scrollHeight; };
+        i.src = c.url;
+      }
+    });
+  }
+  async function openFile(path, name, download) {
+    // 팝업 차단을 피하려고 창을 먼저 연 뒤 주소를 넣는다 (사진 크게 보기)
+    const w = download ? null : window.open("", "_blank");
+    try {
+      const url = await signedUrl(path, download ? name : null);
+      if (w) w.location.href = url;
+      else { const a = document.createElement("a"); a.href = url; a.download = name || ""; document.body.appendChild(a); a.click(); a.remove(); }
+    } catch (e) { if (w) w.close(); alert("파일을 열지 못했어요: " + sbErr(e)); }
+  }
+  // 큰 사진은 보내기 전에 줄인다 (긴 변 1920px) — 휴대폰 데이터·저장 공간 절약
+  async function shrinkImage(file) {
+    if (!/^image\/(jpeg|png|webp)$/.test(file.type) || file.size < 1.5 * 1024 * 1024) return file;
+    try {
+      const bmp = await createImageBitmap(file);
+      const k = Math.min(1, 1920 / Math.max(bmp.width, bmp.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+      const g = cv.getContext("2d");
+      g.fillStyle = "#fff"; g.fillRect(0, 0, cv.width, cv.height);
+      g.drawImage(bmp, 0, 0, cv.width, cv.height);
+      const blob = await new Promise(r => cv.toBlob(r, "image/jpeg", 0.85));
+      if (!blob || blob.size >= file.size) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, "") + ".jpg", { type: "image/jpeg" });
+    } catch (e) { return file; }
+  }
+  async function sendFiles(list) {
+    if (!current || !list || !list.length) return;
+    const files = [...list];
+    const err = $("chat-err");
+    err.style.color = "";
+    err.textContent = "";
+    for (const f of files) {
+      if (!ALLOWED_EXT.includes(extOf(f.name))) { err.textContent = `「${f.name}」은(는) 보낼 수 없는 형식이에요. (사진·한글·PDF·오피스·txt·zip)`; return; }
+      if (f.size > MAX_BYTES) { err.textContent = `「${f.name}」이(가) 20MB보다 커요.`; return; }
+    }
+    $("attach-btn").disabled = true;
+    let failed = false;
+    try {
+      if (!current.roomId) {
+        const { data: roomId, error } = await sb.rpc("talk_dm_room", { p_to: current.to });
+        if (error) throw error;
+        current = { roomId };
+      }
+      for (let i = 0; i < files.length; i++) {
+        err.style.color = "var(--sub)";
+        err.textContent = `올리는 중… ${files.length > 1 ? `(${i + 1}/${files.length}) ` : ""}${files[i].name}`;
+        const f = await shrinkImage(files[i]);
+        const path = `${current.roomId}/${crypto.randomUUID()}.${extOf(f.name)}`;
+        const up = await sb.storage.from("talk-files").upload(path, f, { contentType: f.type || "application/octet-stream", upsert: false });
+        if (up.error) throw up.error;
+        const { data, error } = await sb.rpc("talk_send", { p_body: "", p_room: current.roomId, p_file: { path, name: f.name } });
+        if (error) { await sb.storage.from("talk-files").remove([path]).catch(() => {}); throw error; }
+        sb.functions.invoke("talk-push", { body: { action: "notify", message_id: data.id } }).catch(() => {});
+      }
+    } catch (e) {
+      failed = true;
+      err.style.color = "";
+      err.textContent = "보내지 못했어요: " + sbErr(e);
+    } finally {
+      if (!failed) { err.style.color = ""; err.textContent = ""; }
+      $("attach-btn").disabled = false;
+      $("file-input").value = "";
+    }
+    await refresh(true);
+  }
+  $("attach-btn").addEventListener("click", () => $("file-input").click());
+  $("file-input").addEventListener("change", e => sendFiles(e.target.files));
+  // 컴퓨터: 끌어다 놓기, 붙여넣기(캡처 화면 등)
+  const mainEl = document.querySelector(".talk-main");
+  mainEl.addEventListener("dragover", e => { if (current && e.dataTransfer && [...e.dataTransfer.types].includes("Files")) { e.preventDefault(); mainEl.classList.add("dragover"); } });
+  mainEl.addEventListener("dragleave", e => { if (!mainEl.contains(e.relatedTarget)) mainEl.classList.remove("dragover"); });
+  mainEl.addEventListener("drop", e => { mainEl.classList.remove("dragover"); if (current && e.dataTransfer && e.dataTransfer.files.length) { e.preventDefault(); sendFiles(e.dataTransfer.files); } });
+  $("chat-text").addEventListener("paste", e => {
+    const files = [...(e.clipboardData ? e.clipboardData.files : [])];
+    if (files.length) {
+      e.preventDefault();
+      sendFiles(files.map(f => f.name && f.name !== "image.png" ? f : new File([f], "캡처_" + Date.now() + ".png", { type: f.type })));
+    }
+  });
 
   /* ── 입력: Enter 보내기, Shift+Enter 줄바꿈, 한글 조합 중 Enter 무시, 성공했을 때만 입력칸 비우기 ── */
   const ta = $("chat-text");
