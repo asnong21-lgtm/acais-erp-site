@@ -409,13 +409,53 @@
         : `<tr><td class="empty-row" colspan="7">아직 문서가 없습니다.</td></tr>`;
     }
 
-    // 문서 보기 창이 열려 있으면 새 데이터로 다시 그린다(결재·첨부가 바뀌었을 수 있음)
-    if (openDocNo) renderDoc(openDocNo);
+    // 문서 보기 창이 열려 있으면 새 데이터로 다시 그린다(결재·첨부가 바뀌었을 수 있음). 고치는 중이면 입력을 지키려고 그대로 둔다
+    if (openDocNo && editDocNo !== openDocNo) renderDoc(openDocNo);
   }
 
   /* ── 문서 보기 (모든 종류 공통) ── */
-  let openDocNo = null;
-  const clip = v => v.files && v.files.length ? `<span class="clip">📎${v.files.length}</span>` : "";
+  let openDocNo = null, editDocNo = null;
+  // 결재선에서 고치기: 종류별 입력칸 (ids e-*)
+  function editForm(v) {
+    const inp = (id, label, val, attrs = "") => `<div class="form-row"><label>${label}</label><input ${attrs} id="${id}" value="${esc(val == null ? "" : val)}"></div>`;
+    let h = "";
+    if (v.type === "draft") {
+      h += `<div class="form-row"><label>문서 분류</label><select id="e-category">${(data.categories || []).map(c => `<option ${c === v.category ? "selected" : ""}>${esc(c)}</option>`).join("")}</select></div>`;
+      h += inp("e-title", "제목", v.title, 'type="text" maxlength="200"');
+      h += `<div class="form-row"><label>본문</label><textarea id="e-body" maxlength="20000" style="min-height:260px;">${esc(v.body)}</textarea></div>`;
+      h += inp("e-program", "관련 사업", v.program, 'type="text" maxlength="200"');
+    }
+    if (v.type === "leave") {
+      h += inp("e-start", "시작일", v.startDate, 'type="date"') + inp("e-end", "종료일", v.endDate, 'type="date"');
+      h += inp("e-lh", "연차 시간", fmtDays(v.leaveHours), 'type="number" min="0.5" step="0.5"');
+    }
+    if (v.type === "overtime") h += inp("e-work", "근무일", v.workDate, 'type="date"') + inp("e-hours", "시간", fmtDays(v.hours), 'type="number" min="0.5" max="16" step="0.5"') + inp("e-program", "관련 사업", v.program, 'type="text" maxlength="200"');
+    if (v.type === "expense") h += inp("e-item", "내역", v.item, 'type="text" maxlength="300"') + inp("e-amount", "금액(원)", v.amount, 'type="text" inputmode="numeric"') +
+      inp("e-program", "관련 사업", v.program, 'type="text" maxlength="200"') + inp("e-budget", "예산과목", v.budgetItem, 'type="text" maxlength="100"');
+    if (v.type !== "draft") h += inp("e-reason", "사유", v.reason, 'type="text" maxlength="2000"');
+    h += inp("e-note", "수정 메모", "", 'type="text" maxlength="500" placeholder="(선택) 무엇을 왜 고쳤는지 — 수정 이력에 남습니다"');
+    return `<div class="sec"><h4>문서 고치기 — 저장하면 누가·무엇을 바꿨는지 「수정 이력」에 남습니다</h4>${h}
+      <div class="acts" style="border-top:none; padding-top:0;"><button class="mini-btn primary" data-edit-save="${esc(v.docNo)}">저장</button>
+      <button class="mini-btn" data-edit-cancel>그만두기</button></div><div class="msg" id="e-msg"></div></div>`;
+  }
+  function collectEdit(v) {
+    const g = id => ($(id) || {}).value;
+    if (v.type === "draft") return { category: g("e-category"), title: g("e-title"), body: g("e-body"), program: g("e-program") };
+    if (v.type === "leave") return { startDate: g("e-start"), endDate: g("e-end"), leaveHours: g("e-lh"), reason: g("e-reason") };
+    if (v.type === "overtime") return { workDate: g("e-work"), hours: g("e-hours"), program: g("e-program"), reason: g("e-reason") };
+    return { item: g("e-item"), amount: String(g("e-amount") || "").replace(/[^\d]/g, ""), program: g("e-program"), budgetItem: g("e-budget"), reason: g("e-reason") };
+  }
+  function editHistory(v) {
+    const edits = v.edits || [];
+    if (!edits.length) return "";
+    const short = s => { s = String(s == null || s === "" ? "(없음)" : s); return s.length > 120 ? s.slice(0, 120) + "…" : s; };
+    return `<div class="sec"><h4>수정 이력 (${edits.length})</h4>${edits.map(e => `<details style="margin-bottom:6px;">
+        <summary class="line-step"><b>${esc(e.by)}</b>${e.byDrafter ? "(기안자)" : "(결재자)"} · ${esc(e.at)} · ${esc((e.changes || []).map(c => c.label).join(", "))} 수정${e.note ? " — " + esc(e.note) : ""}</summary>
+        <div class="line-step" style="padding:4px 0 0 14px;">${(e.changes || []).map(c => `${esc(c.label)}: <s>${esc(short(c.before))}</s> → <b>${esc(short(c.after))}</b>`).join("<br>")}</div>
+      </details>`).join("")}</div>`;
+  }
+  const clip = v => (v.files && v.files.length ? `<span class="clip">📎${v.files.length}</span>` : "") +
+    (v.edits && v.edits.length ? `<span class="clip" title="수정 이력 ${v.edits.length}건">✏️${v.editedByOthers ? "결재자 수정" : "수정"}</span>` : "");
   const fmtSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round(n / 1024)) + "KB";
   function findDoc(no) {
     if (!data) return null;
@@ -437,28 +477,33 @@
     const fileList = files.length ? `<ul class="file-list">${files.map(f => `<li>
         <span class="fname">📎 ${esc(f.name)}</span><span class="fsize">${fmtSize(Number(f.size) || 0)}</span>
         <button class="link-btn" data-download="${esc(f.path)}" data-fname="${esc(f.name)}">받기</button>
-        ${v.canDetach ? `<button class="link-btn" style="color:#c0392b;" data-detach="${esc(f.id)}">떼기</button>` : ""}</li>`).join("")}</ul>`
+        ${f.by && f.by !== v.drafterName ? `<span class="fsize">(${esc(f.by)} 첨부)</span>` : ""}
+        ${v.canDetach && (v.drafterId === data.me.id || f.mine) ? `<button class="link-btn" style="color:#c0392b;" data-detach="${esc(f.id)}">떼기</button>` : ""}</li>`).join("")}</ul>`
       : `<div class="note">첨부 파일이 없습니다.</div>`;
     const attach = v.canAttach ? `<div style="margin-top:8px;"><input type="file" id="m-files" multiple> <button class="mini-btn primary" data-attach-more="${esc(v.docNo)}">첨부 올리기</button>
-        <div class="hint">${v.status === "승인" ? "승인된 뒤에도 영수증·결과물 등을 더 붙일 수 있습니다." : "결재가 시작되기 전까지는 붙인 파일을 뗄 수 있습니다."}</div></div>` : "";
+        <div class="hint">${v.status === "승인" ? "승인된 뒤에도 영수증·결과물 등을 더 붙일 수 있습니다."
+          : v.drafterId === data.me.id ? "결재가 시작되기 전까지는 붙인 파일을 뗄 수 있습니다."
+          : "결재자도 파일을 붙일 수 있습니다. 내가 붙인 파일은 내 결재 차례 동안 뗄 수 있습니다."}</div></div>` : "";
     const acts = [];
     if (v.myTurn) acts.push(`<button class="mini-btn primary" data-approve="${esc(v.docNo)}">승인</button>
       <input type="text" placeholder="반려 사유 (반려할 때 필수)" data-reason="${esc(v.docNo)}">
       <button class="mini-btn danger" data-reject="${esc(v.docNo)}">반려</button>`);
     if (v.canWithdraw) acts.push(`<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.status === "승인" ? 1 : ""}">${v.status === "승인" ? "취소" : "회수"}</button>`);
     if (v.canResubmit) acts.push(`<button class="mini-btn primary" data-resubmit="${esc(v.docNo)}">고쳐서 다시 올리기</button>`);
+    if (v.canEdit && editDocNo !== v.docNo) acts.unshift(`<button class="mini-btn" data-edit="${esc(v.docNo)}">✏️ 수정</button>`);
+    const editing = editDocNo === v.docNo && v.canEdit;
     $("doc-modal-body").innerHTML = `
       <button class="close-x" data-close-doc aria-label="닫기">×</button>
       <h3>${esc(v.type === "draft" ? v.title : v.typeLabel)}</h3>
       <div class="sub"><span>${esc(v.docNo)}</span>${stageTag(v)}${v.status === "반려" && v.rejectReason ? `<span style="color:#c0392b;">반려 사유: ${esc(v.rejectReason)}</span>` : ""}</div>
-      ${docFields(v)}
-      ${v.type === "draft" ? `<div class="sec"><h4>본문</h4><div class="body-text">${esc(v.body)}</div></div>` : ""}
+      ${editing ? editForm(v) : docFields(v) + (v.type === "draft" ? `<div class="sec"><h4>본문</h4><div class="body-text">${esc(v.body)}</div></div>` : "")}
+      ${editHistory(v)}
       <div class="sec"><h4>첨부 파일 (${files.length})</h4>${fileList}${attach}<div class="msg" id="m-file-msg"></div></div>
       <div class="sec"><h4>결재 기록</h4>${trail(v)}</div>
       ${acts.length ? `<div class="acts">${acts.join("")}</div><div class="msg" data-msg="${esc(v.docNo)}"></div>` : ""}`;
   }
-  function openDoc(no) { openDocNo = no; renderDoc(no); $("doc-modal").classList.add("open"); }
-  function closeDoc() { openDocNo = null; $("doc-modal").classList.remove("open"); }
+  function openDoc(no) { openDocNo = no; editDocNo = null; renderDoc(no); $("doc-modal").classList.add("open"); }
+  function closeDoc() { openDocNo = null; editDocNo = null; $("doc-modal").classList.remove("open"); }
   $("doc-modal").addEventListener("click", e => { if (e.target.id === "doc-modal" || e.target.hasAttribute("data-close-doc")) closeDoc(); });
   document.addEventListener("keydown", e => { if (e.key === "Escape" && openDocNo) closeDoc(); });
 
@@ -679,8 +724,23 @@
   });
 
   document.addEventListener("click", async e => {
-    const t = e.target.closest("[data-open],[data-approve],[data-reject],[data-withdraw],[data-download],[data-detach],[data-attach-more],[data-resubmit],[data-resub-cancel]") || e.target;
+    const t = e.target.closest("[data-open],[data-approve],[data-reject],[data-withdraw],[data-download],[data-detach],[data-attach-more],[data-resubmit],[data-resub-cancel],[data-edit],[data-edit-save],[data-edit-cancel]") || e.target;
     if (t.dataset.open) { e.preventDefault(); openDoc(t.dataset.open); return; }
+    if (t.dataset.edit) { editDocNo = t.dataset.edit; renderDoc(t.dataset.edit); return; }
+    if (t.hasAttribute && t.hasAttribute("data-edit-cancel")) { const no = editDocNo; editDocNo = null; renderDoc(no); return; }
+    if (t.dataset.editSave) {
+      const no = t.dataset.editSave, v = findDoc(no), box = $("e-msg");
+      t.disabled = true; box.className = "msg"; box.textContent = "저장 중...";
+      const r = await rpc("apv_edit", { p_doc_no: no, p_data: collectEdit(v), p_note: ($("e-note") || {}).value || "" });
+      if (!r || !r.ok) { box.className = "msg err"; box.textContent = (r && r.message) || "저장하지 못했습니다."; t.disabled = false; return; }
+      // 저장이 성공한 뒤에만 고치기 화면을 닫는다(실패하면 입력이 그대로 남는다)
+      editDocNo = null;
+      await refresh();
+      renderDoc(no);
+      const m = document.querySelector(`#doc-modal [data-msg="${CSS.escape(no)}"]`);
+      if (m) { m.className = "msg ok"; m.textContent = r.changed ? `${r.changed}곳을 고쳐 저장했습니다. 수정 이력에 남았습니다.` : "바뀐 내용이 없습니다."; }
+      return;
+    }
     if (t.dataset.resubmit) { startResubmit(t.dataset.resubmit); return; }
     if (t.hasAttribute && t.hasAttribute("data-resub-cancel")) { endResubmit(); $("new-form").reset(); showGroup(); return; }
     if (t.dataset.download) { downloadFile(t.dataset.download, t.dataset.fname); return; }
