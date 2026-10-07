@@ -70,6 +70,9 @@
   .modal dd { margin:0; }
   .modal .acts { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
   .modal .acts input[type=text] { flex:1; min-width:180px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font:inherit; font-size:13px; }
+  .resub-box { margin-bottom:14px; padding:12px 14px; border-radius:8px; background:var(--accent-bg); border:1px solid #f5c9a8; font-size:13px; line-height:1.7; }
+  .resub-box b { color:var(--accent); }
+  .resub-box .file-list label { display:flex; gap:6px; align-items:center; flex:1; font-weight:500; }
   .modal .close-x { float:right; background:none; border:none; font-size:22px; line-height:1; cursor:pointer; color:var(--sub); }
   @media (max-width: 640px) {
     .form-row { grid-template-columns: 1fr !important; }
@@ -121,6 +124,8 @@
         <div class="panel" id="new-blocked" style="display:none;"><div class="note" id="new-blocked-text"></div></div>
         <div class="panel" id="new-form-panel">
           <form id="new-form" autocomplete="off">
+            <!-- 재기안: 반려·회수된 문서를 불러와 고쳐서 다시 올릴 때만 보인다 -->
+            <div class="resub-box" id="resub-box" hidden></div>
             <div class="form-row"><label>문서 종류</label><select id="f-type"></select></div>
             <!-- 연차·휴가 -->
             <div data-group="leave">
@@ -294,6 +299,8 @@
     if (v.ceoLine) out.push(`단장 <b>${esc(v.ceoLine)}</b>`);
     if (v.status === "반려" && v.rejectReason) out.push(`반려 사유 <b>${esc(v.rejectReason)}</b>`);
     if (v.status === "회수") out.push(v.stageLabel === "취소" ? `승인 후 본인 취소 <b>${esc(v.closedAt)}</b>` : `회수 ${esc(v.closedAt)}`);
+    if (v.resubmitOf) out.push(`원본 <span class="doc-link" data-open="${esc(v.resubmitOf)}">${esc(v.resubmitOf)}</span>을 고쳐서 다시 올림`);
+    if (v.resubmittedAs) out.push(`고쳐서 다시 올림 → <span class="doc-link" data-open="${esc(v.resubmittedAs)}">${esc(v.resubmittedAs)}</span>`);
     return `<div class="line-step">${out.join("<br>") || "—"}</div>`;
   }
 
@@ -342,7 +349,8 @@
     $("mine-body").innerHTML = d.mine.length ? d.mine.map(v => `<tr>
         <td><span class="doc-link" data-open="${esc(v.docNo)}">${esc(v.docNo)}</span></td><td>${esc(v.typeLabel)}</td><td>${period(v)}${clip(v)}</td><td>${esc(v.reason)}</td>
         <td>${stageTag(v)}</td><td>${trail(v)}</td>
-        <td>${v.canWithdraw ? `<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.status === "승인" ? 1 : ""}">${v.status === "승인" ? "취소" : "회수"}</button>` : ""}</td>
+        <td>${v.canWithdraw ? `<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.status === "승인" ? 1 : ""}">${v.status === "승인" ? "취소" : "회수"}</button>` : ""}
+            ${v.canResubmit ? `<button class="mini-btn primary" data-resubmit="${esc(v.docNo)}">고쳐서 다시 올리기</button>` : ""}</td>
       </tr>`).join("")
       : `<tr><td class="empty-row" colspan="7">${d.canDraft ? "아직 올린 문서가 없습니다. 「새로 올리기」에서 시작하세요." : "올린 문서가 없습니다."}</td></tr>`;
 
@@ -438,10 +446,11 @@
       <input type="text" placeholder="반려 사유 (반려할 때 필수)" data-reason="${esc(v.docNo)}">
       <button class="mini-btn danger" data-reject="${esc(v.docNo)}">반려</button>`);
     if (v.canWithdraw) acts.push(`<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.status === "승인" ? 1 : ""}">${v.status === "승인" ? "취소" : "회수"}</button>`);
+    if (v.canResubmit) acts.push(`<button class="mini-btn primary" data-resubmit="${esc(v.docNo)}">고쳐서 다시 올리기</button>`);
     $("doc-modal-body").innerHTML = `
       <button class="close-x" data-close-doc aria-label="닫기">×</button>
       <h3>${esc(v.type === "draft" ? v.title : v.typeLabel)}</h3>
-      <div class="sub"><span>${esc(v.docNo)}</span>${stageTag(v)}</div>
+      <div class="sub"><span>${esc(v.docNo)}</span>${stageTag(v)}${v.status === "반려" && v.rejectReason ? `<span style="color:#c0392b;">반려 사유: ${esc(v.rejectReason)}</span>` : ""}</div>
       ${docFields(v)}
       ${v.type === "draft" ? `<div class="sec"><h4>본문</h4><div class="body-text">${esc(v.body)}</div></div>` : ""}
       <div class="sec"><h4>첨부 파일 (${files.length})</h4>${fileList}${attach}<div class="msg" id="m-file-msg"></div></div>
@@ -482,6 +491,65 @@
     const { data: s, error } = await sb.storage.from("approval-files").createSignedUrl(path, 60, { download: name });
     if (error) { alert("파일을 받을 수 없습니다: " + error.message); return; }
     window.open(s.signedUrl, "_blank", "noopener");
+  }
+
+  /* ── 재기안: 반려·회수된 내 문서를 불러와 고쳐서 새 문서로 올린다 ── */
+  let resubmitFrom = null;
+  const newPathFor = (docNo, name) => {
+    const ext = (String(name).match(/\.([A-Za-z0-9]{1,10})$/) || [, ""])[1].toLowerCase();
+    const id = crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2);
+    return `${docNo}/${id}${ext ? "." + ext : ""}`;
+  };
+  function startResubmit(no) {
+    const v = findDoc(no);
+    if (!v) return;
+    closeDoc();
+    $("new-form").reset();
+    resubmitFrom = no;
+    $("f-type").value = v.type; $("f-type").disabled = true; showGroup();
+    const set = (id, val) => { if (val != null) $(id).value = val; };
+    if (v.type === "draft") { set("f-category", v.category || "기타"); set("f-title", v.title); set("f-body", v.body); set("f-dr-program", v.program); }
+    if (v.type === "leave") { set("f-start", v.startDate); set("f-end", v.endDate); set("f-days", v.leaveHours != null ? fmtDays(v.leaveHours) : ""); set("f-reason", v.reason); convDays(); renderLeaveHint(); }
+    if (v.type === "overtime") { set("f-work", v.workDate); set("f-hours", fmtDays(v.hours)); set("f-ot-program", v.program); set("f-reason", v.reason); }
+    if (v.type === "expense") { set("f-item", v.item); set("f-amount", v.amount); set("f-ex-program", v.program); set("f-budget", v.budgetItem); set("f-reason", v.reason); }
+    const files = v.files || [];
+    $("resub-box").innerHTML = `<b>${esc(v.docNo)}</b>(${esc(v.stageLabel)})을 고쳐서 새 문서로 다시 올립니다. 원본 내용을 불러왔으니 고칠 곳만 고치세요.` +
+      (v.status === "반려" && v.rejectReason ? `<br>반려 사유: <b>${esc(v.rejectReason)}</b>` : "") +
+      (files.length ? `<div style="margin-top:6px;">원본 첨부 — 새 문서에 가져갈 파일만 체크하세요</div><ul class="file-list">${files.map(f =>
+        `<li><label><input type="checkbox" data-carry="${esc(f.id)}" checked> 📎 ${esc(f.name)}</label><span class="fsize">${fmtSize(Number(f.size) || 0)}</span></li>`).join("")}</ul>` : "") +
+      `<div style="margin-top:6px;"><button type="button" class="link-btn" data-resub-cancel>그만두고 새로 쓰기</button></div>`;
+    $("resub-box").hidden = false;
+    openTab("new");
+    $("new-msg").className = "msg"; $("new-msg").textContent = "";
+    $("resub-box").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function endResubmit() {
+    resubmitFrom = null; $("f-type").disabled = false;
+    $("resub-box").hidden = true; $("resub-box").innerHTML = "";
+  }
+  // 원본 첨부를 새 문서 폴더로 복사해 등록한다. 복사가 안 되면 내려받아 다시 올린다.
+  async function carryFiles(newDocNo, files) {
+    const failed = [];
+    for (const f of files) {
+      const path = newPathFor(newDocNo, f.name);
+      let cp = await sb.storage.from("approval-files").copy(f.path, path);
+      if (cp.error) {
+        const dl = await sb.storage.from("approval-files").download(f.path);
+        cp = dl.error ? dl : await sb.storage.from("approval-files").upload(path, dl.data, { upsert: false });
+      }
+      if (cp.error) { failed.push(`${f.name}(${cp.error.message})`); continue; }
+      const attach = p => rpc("apv_attach", { p_doc_no: newDocNo, p_path: p, p_name: f.name, p_size: Number(f.size) || 0, p_mime: "" });
+      let r = await attach(path);
+      if (!r || !r.ok) {
+        // 복사본의 주인이 내가 아니라고 판정되면(저장소 버전에 따라 다름) 내려받아 내 이름으로 다시 올린다
+        const dl = await sb.storage.from("approval-files").download(f.path);
+        const path2 = newPathFor(newDocNo, f.name);
+        const up = dl.error ? dl : await sb.storage.from("approval-files").upload(path2, dl.data, { upsert: false });
+        r = up.error ? { ok: false, message: up.error.message } : await attach(path2);
+      }
+      if (!r || !r.ok) failed.push(`${f.name}(${(r && r.message) || "등록 실패"})`);
+    }
+    return failed;
   }
 
   $("f-files").addEventListener("change", () => {
@@ -586,14 +654,23 @@
     const type = $("f-type").value;
     const picked = checkFiles($("f-files").files);
     if (!picked.ok) { msg.className = "msg err"; msg.textContent = picked.message; $("submit-btn").disabled = false; return; }
+    // 재기안이면 원본에서 가져갈 첨부(체크된 것)를 미리 고른다
+    const from = resubmitFrom;
+    const orig = from ? findDoc(from) : null;
+    const carry = orig ? (orig.files || []).filter(f => { const cb = document.querySelector(`[data-carry="${CSS.escape(f.id)}"]`); return cb && cb.checked; }) : [];
     try {
-      const r = await rpc("apv_submit", { p_type: type, p_data: collect(type) });
+      const r = from
+        ? await rpc("apv_resubmit", { p_from: from, p_type: type, p_data: collect(type) })
+        : await rpc("apv_submit", { p_type: type, p_data: collect(type) });
       if (!r.ok) { msg.className = "msg err"; msg.textContent = r.message; return; }
       // 문서가 저장된 뒤 첨부를 올린다. 일부가 실패해도 문서는 남고, 「문서 보기」에서 다시 붙일 수 있다
       let failed = [];
-      if (picked.files.length) failed = await uploadFiles(r.docNo, picked.files, (i, n, name) => { msg.textContent = `${r.docNo} 올림 · 첨부 ${i}/${n} 올리는 중 (${name})`; });
+      if (carry.length) { msg.textContent = `${r.docNo} 올림 · 원본 첨부 ${carry.length}개 옮기는 중`; failed = failed.concat(await carryFiles(r.docNo, carry)); }
+      if (picked.files.length) failed = failed.concat(await uploadFiles(r.docNo, picked.files, (i, n, name) => { msg.textContent = `${r.docNo} 올림 · 첨부 ${i}/${n} 올리는 중 (${name})`; }));
       // 저장이 성공한 뒤에만 입력칸을 비운다(문서 종류는 그대로 둔다)
+      endResubmit();
       $("new-form").reset(); $("f-type").value = type; showGroup(); $("f-file-list").innerHTML = "";
+      if (from && !failed.length) { msg.className = "msg ok"; msg.textContent = `${from}을 고쳐 ${r.docNo}로 다시 올렸습니다 — 지금 단계: ${r.stageLabel}`; await refresh(); return; }
       if (failed.length) { msg.className = "msg err"; msg.textContent = `${r.docNo} 올렸습니다(${r.stageLabel}). 다만 첨부 ${failed.length}개를 못 붙였습니다: ${failed.join(", ")} — 「내 신청」에서 문서를 열어 다시 붙여 주세요.`; }
       else { msg.className = "msg ok"; msg.textContent = `${r.docNo} 올렸습니다${picked.files.length ? ` (첨부 ${picked.files.length}개)` : ""} — 지금 단계: ${r.stageLabel}`; }
       await refresh();
@@ -602,8 +679,10 @@
   });
 
   document.addEventListener("click", async e => {
-    const t = e.target.closest("[data-open],[data-approve],[data-reject],[data-withdraw],[data-download],[data-detach],[data-attach-more]") || e.target;
+    const t = e.target.closest("[data-open],[data-approve],[data-reject],[data-withdraw],[data-download],[data-detach],[data-attach-more],[data-resubmit],[data-resub-cancel]") || e.target;
     if (t.dataset.open) { e.preventDefault(); openDoc(t.dataset.open); return; }
+    if (t.dataset.resubmit) { startResubmit(t.dataset.resubmit); return; }
+    if (t.hasAttribute && t.hasAttribute("data-resub-cancel")) { endResubmit(); $("new-form").reset(); showGroup(); return; }
     if (t.dataset.download) { downloadFile(t.dataset.download, t.dataset.fname); return; }
     if (t.dataset.detach) {
       if (!confirm("이 첨부 파일을 뗄까요?")) return;
