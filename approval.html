@@ -101,9 +101,9 @@
             <div data-group="leave">
               <div class="form-row"><label>시작일 <span class="req">*</span></label><input type="date" id="f-start" required></div>
               <div class="form-row"><label>종료일 <span class="req">*</span></label><input type="date" id="f-end" required></div>
-              <div class="form-row"><label>일수 <span class="req">*</span></label>
-                <div><input type="number" id="f-days" min="0.5" step="0.5" required>
-                  <div class="hint">반차는 0.5일. 시작·종료일을 고르면 평일 기준으로 먼저 채워지니, 공휴일이 끼어 있으면 고쳐 주세요.</div>
+              <div class="form-row"><label>연차 시간 <span class="req">*</span></label>
+                <div><input type="number" id="f-days" min="0.5" step="0.5" required style="width:140px; display:inline-block;"> 시간 <span class="need" id="f-days-conv"></span>
+                  <div class="hint">하루 7시간 근무 기준 · 반일 3.5시간 · 0.5시간 단위. 날짜를 고르면 「평일 수 × 7시간」으로 먼저 채워지니, 공휴일이 끼었거나 몇 시간만 쓰면 고쳐 주세요.</div>
                   <div class="leave-hint" id="leave-hint"></div></div></div>
             </div>
             <!-- 시간외근무 -->
@@ -148,7 +148,7 @@
       <div id="tab-leave" class="admin-panel" style="display:none;">
         <div class="panel" style="margin-bottom:14px;"><div class="note" id="leave-note"></div></div>
         <div class="table-scroll"><table class="admin-table">
-          <thead><tr><th>직원</th><th>부서</th><th class="num">부여</th><th class="num">사용(승인)</th><th class="num">결재 중</th><th class="num">잔여</th></tr></thead>
+          <thead><tr><th>직원</th><th>부서</th><th class="num">부여(시간)</th><th class="num">사용(승인)</th><th class="num">결재 중</th><th class="num">잔여</th></tr></thead>
           <tbody id="leave-body"></tbody>
         </table></div>
         <div class="msg" id="leave-msg"></div>
@@ -234,6 +234,15 @@
   // 종류마다 다른 내용(기간·일수 / 근무일·시간 / 내역·금액)은 DB 가 만든 요약 한 줄(summary)로 보여준다
   const period = v => esc(v.summary || v.title || "");
   const fmtDays = n => n == null ? "" : String(Number(n));
+  // 연차는 시간 단위. 105 → "105시간 (15일)", 10 → "10시간 (1일 3시간)" — DB 의 apv_hours_text 와 같은 모양
+  const dayH = () => (data && Number(data.dayHours)) || 7;
+  function hoursText(h) {
+    if (h == null || h === "") return "";
+    h = Number(h); const a = Math.abs(h), dh = dayH();
+    if (a < dh) return `${fmtDays(h)}시간`;
+    const days = Math.floor(a / dh), rest = Math.round((a - days * dh) * 10) / 10;
+    return `${fmtDays(h)}시간 (${h < 0 ? "-" : ""}${days}일${rest ? " " + fmtDays(rest) + "시간" : ""})`;
+  }
   function trail(v) {
     const out = [];
     if (v.headLine) out.push(`부서장 <b>${esc(v.headLine)}</b>`);
@@ -317,16 +326,17 @@
     }).join("");
 
     // 연차 현황 — 사용일수는 손으로 적지 않고 승인된 연차 문서에서 센다
-    $("leave-note").innerHTML = `<b>${d.leaveYear}년</b> 기준 · 잔여 = 부여 − 사용(승인된 연차만). 결재 중인 연차는 따로 보여주고 잔여에서 빼지 않습니다. 반려·회수는 세지 않습니다.<br>` +
-      (d.canEditLines ? "부여 일수는 이 표에서 직접 고칩니다(0.5일 단위). 모르는 직원은 비워 두면 「확인 필요」로 남습니다." : "부여 일수는 사무국이 정합니다. 틀린 곳이 있으면 사무국에 알려 주세요.");
+    $("leave-note").innerHTML = `<b>${d.leaveYear}년</b> 기준 · <b>시간 단위</b>(하루 ${fmtDays(dayH())}시간, 주 5일) · 잔여 = 부여 − 사용(승인된 연차만). 결재 중인 연차는 따로 보여주고 잔여에서 빼지 않습니다. 반려·회수는 세지 않습니다.<br>` +
+      (d.canEditLines ? `부여 시간은 이 표에서 직접 고칩니다(0.5시간 단위, 예: 15일 = ${fmtDays(15 * dayH())}시간). 모르는 직원은 비워 두면 「확인 필요」로 남습니다.` : "부여 시간은 사무국이 정합니다. 틀린 곳이 있으면 사무국에 알려 주세요.");
     $("leave-body").innerHTML = d.leave.length ? d.leave.map(r => {
       const granted = d.canEditLines
-        ? `<input class="grant-input" type="number" min="0" max="60" step="0.5" data-grant="${esc(r.id)}" value="${r.granted == null ? "" : fmtDays(r.granted)}" placeholder="?">`
-        : (r.granted == null ? `<span class="need">확인 필요</span>` : fmtDays(r.granted) + "일");
+        ? `<input class="grant-input" type="number" min="0" max="600" step="0.5" data-grant="${esc(r.id)}" value="${r.granted == null ? "" : fmtDays(r.granted)}" placeholder="?">
+           <div class="line-step">${r.granted == null ? "" : esc(hoursText(r.granted).replace(/^[^(]*\(?|\)$/g, "")) || ""}</div>`
+        : (r.granted == null ? `<span class="need">확인 필요</span>` : esc(hoursText(r.granted)));
       const remain = r.remaining == null ? `<span class="need">확인 필요</span>`
-        : `<span class="${Number(r.remaining) < 0 ? "bal-neg" : ""}">${fmtDays(r.remaining)}일</span>`;
+        : `<span class="${Number(r.remaining) < 0 ? "bal-neg" : ""}">${esc(hoursText(r.remaining))}</span>`;
       return `<tr><td>${esc(r.name)}</td><td>${esc(r.deptName)}</td><td class="num">${granted}</td>
-        <td class="num">${fmtDays(r.used)}일</td><td class="num">${Number(r.pending) ? fmtDays(r.pending) + "일" : "—"}</td><td class="num">${remain}</td></tr>`;
+        <td class="num">${esc(hoursText(r.used))}</td><td class="num">${Number(r.pending) ? esc(hoursText(r.pending)) : "—"}</td><td class="num">${remain}</td></tr>`;
     }).join("") : `<tr><td class="empty-row" colspan="6">직원이 없습니다.</td></tr>`;
 
     // 전체 문서함
@@ -374,11 +384,13 @@
   function autoDays() {
     const s = $("f-start").value; let e = $("f-end").value;
     if (s && (!e || e < s)) { $("f-end").value = s; e = s; }
-    if (s && e) { const n = weekdays(s, e); if (n !== "") $("f-days").value = n; }
+    if (s && e) { const n = weekdays(s, e); if (n !== "") $("f-days").value = n * dayH(); }
+    convDays();
   }
+  function convDays() { const v = $("f-days").value; $("f-days-conv").textContent = v && Number(v) >= dayH() ? "= " + hoursText(v).replace(/^.*\(|\)$/g, "") : ""; }
   $("f-start").addEventListener("change", () => { autoDays(); renderLeaveHint(); });
   $("f-end").addEventListener("change", () => { autoDays(); renderLeaveHint(); });
-  $("f-days").addEventListener("input", renderLeaveHint);
+  $("f-days").addEventListener("input", () => { convDays(); renderLeaveHint(); });
 
   // 문서 종류를 고르면 그 종류의 칸만 보이고, 보이는 칸만 필수로
   const REQUIRED = { leave: ["f-start", "f-end", "f-days"], overtime: ["f-work", "f-hours"], expense: ["f-item", "f-amount"] };
@@ -407,17 +419,17 @@
     const box = $("leave-hint");
     if (!data || !data.myLeave || ($("f-type").value || "leave") !== "leave") { box.textContent = ""; return; }
     const m = data.myLeave;
-    if (m.remaining == null) { box.className = "leave-hint"; box.textContent = `올해 연차 부여 일수가 아직 정해지지 않았습니다(확인 필요). 사용 ${fmtDays(m.used)}일`; return; }
+    if (m.remaining == null) { box.className = "leave-hint"; box.textContent = `올해 연차 부여 시간이 아직 정해지지 않았습니다(확인 필요). 사용 ${hoursText(m.used)}`; return; }
     const ask = Number($("f-days").value) || 0;
     const after = Number(m.remaining) - Number(m.pending) - ask;
     box.className = "leave-hint" + (after < 0 ? " neg" : "");
-    box.textContent = `남은 연차 ${fmtDays(m.remaining)}일` + (Number(m.pending) ? ` (결재 중 ${fmtDays(m.pending)}일)` : "") +
-      (ask ? ` → 이번 신청이 승인되면 ${fmtDays(after)}일` : "") + (after < 0 ? " — 부여 일수를 넘습니다" : "");
+    box.textContent = `남은 연차 ${hoursText(m.remaining)}` + (Number(m.pending) ? ` (결재 중 ${hoursText(m.pending)})` : "") +
+      (ask ? ` → 이번 신청이 승인되면 ${hoursText(after)}` : "") + (after < 0 ? " — 부여 시간을 넘습니다" : "");
   }
 
   function collect(type) {
     const v = id => $(id).value;
-    if (type === "leave") return { startDate: v("f-start"), endDate: v("f-end") || v("f-start"), days: v("f-days"), reason: v("f-reason") };
+    if (type === "leave") return { startDate: v("f-start"), endDate: v("f-end") || v("f-start"), leaveHours: v("f-days"), reason: v("f-reason") };
     if (type === "overtime") return { workDate: v("f-work"), hours: v("f-hours"), program: v("f-ot-program"), reason: v("f-reason") };
     return { item: v("f-item"), amount: v("f-amount").replace(/[^\d]/g, ""), program: v("f-ex-program"), budgetItem: v("f-budget"), reason: v("f-reason") };
   }
@@ -489,7 +501,7 @@
       const v = el.value.trim();
       const r = await rpc("apv_set_leave_grant", { p_staff_id: el.dataset.grant, p_year: data.leaveYear, p_granted: v === "" ? null : Number(v), p_note: "" });
       msg.className = r.ok ? "msg ok" : "msg err";
-      msg.textContent = r.ok ? (v === "" ? "부여 일수를 비웠습니다(확인 필요)." : "부여 일수를 저장했습니다. 잔여가 다시 계산됐습니다.") : r.message;
+      msg.textContent = r.ok ? (v === "" ? "부여 시간을 비웠습니다(확인 필요)." : `부여 시간을 ${hoursText(v)}으로 저장했습니다. 잔여가 다시 계산됐습니다.`) : r.message;
       await refresh();
     }
   });
