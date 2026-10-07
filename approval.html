@@ -46,6 +46,31 @@
   .leave-hint { margin-top:6px; font-size:12.5px; color:var(--teal); font-weight:700; }
   .leave-hint.neg { color:#c0392b; }
   [data-group][hidden] { display:none !important; }
+  /* 일반 기안 · 첨부 · 문서 보기 */
+  #f-body { min-height:220px; line-height:1.7; }
+  .file-pick { display:flex; flex-direction:column; gap:6px; }
+  .file-list { list-style:none; margin:6px 0 0; padding:0; font-size:12.5px; }
+  .file-list li { display:flex; gap:8px; align-items:center; padding:5px 0; border-bottom:1px dashed var(--line); }
+  .file-list li:last-child { border-bottom:none; }
+  .file-list .fname { flex:1; word-break:break-all; }
+  .file-list .fsize { color:var(--sub); white-space:nowrap; }
+  .link-btn { background:none; border:none; padding:0; color:var(--navy); text-decoration:underline; cursor:pointer; font:inherit; font-size:inherit; }
+  .doc-link { color:var(--navy); font-weight:700; text-decoration:underline; cursor:pointer; }
+  .clip { font-size:11.5px; color:var(--sub); margin-left:4px; white-space:nowrap; }
+  .modal-back { position:fixed; inset:0; background:rgba(15,25,40,.45); display:none; align-items:flex-start; justify-content:center; padding:40px 16px; overflow-y:auto; z-index:50; }
+  .modal-back.open { display:flex; }
+  .modal { background:var(--panel); border-radius:12px; width:100%; max-width:760px; padding:22px 24px; box-shadow:0 10px 40px rgba(0,0,0,.2); }
+  .modal h3 { margin:0 0 4px; font-size:18px; }
+  .modal .sub { font-size:12.5px; color:var(--sub); margin-bottom:14px; display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
+  .modal .sec { margin-top:16px; }
+  .modal .sec h4 { margin:0 0 6px; font-size:13px; color:var(--sub); }
+  .modal .body-text { white-space:pre-wrap; word-break:break-word; font-size:14px; line-height:1.8; border:1px solid var(--line); border-radius:8px; padding:14px 16px; background:#fbfcfd; max-height:50vh; overflow:auto; }
+  .modal dl { display:grid; grid-template-columns:110px 1fr; gap:6px 12px; margin:0; font-size:13.5px; }
+  .modal dt { color:var(--sub); font-weight:700; }
+  .modal dd { margin:0; }
+  .modal .acts { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin-top:18px; padding-top:14px; border-top:1px solid var(--line); }
+  .modal .acts input[type=text] { flex:1; min-width:180px; padding:7px 10px; border:1px solid var(--line); border-radius:6px; font:inherit; font-size:13px; }
+  .modal .close-x { float:right; background:none; border:none; font-size:22px; line-height:1; cursor:pointer; color:var(--sub); }
   @media (max-width: 640px) {
     .form-row { grid-template-columns: 1fr !important; }
     .admin-header .wrap { flex-direction:column; align-items:flex-start; gap:6px; padding-top:6px; padding-bottom:6px; }
@@ -123,7 +148,22 @@
               <div class="form-row"><label>관련 사업</label><input type="text" id="f-ex-program" maxlength="200" placeholder="(선택) 예: 마을공동체 활성화 사업"></div>
               <div class="form-row"><label>예산과목</label><input type="text" id="f-budget" maxlength="100" placeholder="(선택) 예: 회의비, 홍보비, 운영비"></div>
             </div>
-            <div class="form-row"><label>사유</label><input type="text" id="f-reason" maxlength="2000" placeholder="(선택)"></div>
+            <!-- 일반 기안(문서) -->
+            <div data-group="draft" hidden>
+              <div class="form-row"><label>문서 분류</label><select id="f-category"></select></div>
+              <div class="form-row"><label>제목 <span class="req">*</span></label><input type="text" id="f-title" maxlength="200" placeholder="예: 2027년 마을공동체 활성화 사업 추진 계획"></div>
+              <div class="form-row"><label>본문 <span class="req">*</span></label>
+                <div><textarea id="f-body" maxlength="20000" placeholder="1. 목적&#10;2. 추진 내용&#10;3. 소요 예산&#10;4. 붙임"></textarea>
+                  <div class="hint">줄바꿈은 그대로 보입니다. 긴 계획서·공문 원본은 아래에 파일로 첨부하세요.</div></div></div>
+              <div class="form-row"><label>관련 사업</label><input type="text" id="f-dr-program" maxlength="200" placeholder="(선택) 예: 공익 ON 스쿨"></div>
+            </div>
+            <div class="form-row" id="reason-row"><label>사유</label><input type="text" id="f-reason" maxlength="2000" placeholder="(선택)"></div>
+            <div class="form-row"><label>첨부 파일</label>
+              <div class="file-pick">
+                <input type="file" id="f-files" multiple>
+                <ul class="file-list" id="f-file-list"></ul>
+                <div class="hint">파일당 20MB까지, 한 문서에 20개까지. 한글(hwp·hwpx)·오피스·PDF·사진·zip 모두 됩니다. 올린 뒤에도 「문서 보기」에서 더 붙일 수 있습니다.</div>
+              </div></div>
             <div class="route-box" id="route-box"></div>
             <div class="form-actions"><button type="submit" class="btn btn-primary" id="submit-btn">올리기</button></div>
             <div class="msg" id="new-msg"></div>
@@ -179,6 +219,11 @@
 
     </div>
   </section>
+</div>
+
+<!-- 문서 보기 (모든 종류 공통) -->
+<div class="modal-back" id="doc-modal" role="dialog" aria-modal="true">
+  <div class="modal" id="doc-modal-body"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -265,7 +310,11 @@
     } else {
       $("new-form-panel").style.display = "block";
       $("new-blocked").style.display = "none";
-      if (!$("f-type").options.length) { $("f-type").innerHTML = d.types.map(t => `<option value="${t.key}">${esc(t.label)}</option>`).join(""); showGroup(); }
+      if (!$("f-type").options.length) {
+        $("f-type").innerHTML = d.types.map(t => `<option value="${t.key}">${esc(t.label)}</option>`).join("");
+        $("f-category").innerHTML = (d.categories || []).map(c => `<option>${esc(c)}</option>`).join("");
+        showGroup();
+      }
       renderRoute();
       renderLeaveHint();
     }
@@ -275,10 +324,12 @@
     $("cnt-turn").classList.toggle("zero", !d.myTurn.length);
     $("turn-list").innerHTML = d.myTurn.length ? d.myTurn.map(v => `
       <div class="turn-card">
-        <div class="top"><span class="no">${esc(v.docNo)}</span>${stageTag(v)}<span class="title">${esc(v.typeLabel)} · ${esc(v.drafterName)}</span><span class="who-dept">${esc(v.deptName)}</span></div>
+        <div class="top"><span class="doc-link no" data-open="${esc(v.docNo)}">${esc(v.docNo)}</span>${stageTag(v)}<span class="title">${esc(v.typeLabel)} · ${esc(v.drafterName)}</span><span class="who-dept">${esc(v.deptName)}</span>${clip(v)}</div>
         <div class="meta">${period(v)}${v.reason ? " · 사유: " + esc(v.reason) : ""} · 기안 ${esc(v.draftedAt)}</div>
+        ${v.type === "draft" ? `<div class="line-step" style="margin-bottom:8px; white-space:pre-wrap;">${esc(String(v.body || "").slice(0, 180))}${String(v.body || "").length > 180 ? "…" : ""}</div>` : ""}
         ${v.headLine ? `<div class="line-step" style="margin-bottom:10px;">부서장 <b>${esc(v.headLine)}</b></div>` : ""}
         <div class="acts">
+          <button class="mini-btn" data-open="${esc(v.docNo)}">문서 보기${v.files && v.files.length ? " · 첨부 " + v.files.length : ""}</button>
           <button class="mini-btn primary" data-approve="${esc(v.docNo)}">승인</button>
           <input type="text" placeholder="반려 사유 (반려할 때 필수)" data-reason="${esc(v.docNo)}">
           <button class="mini-btn danger" data-reject="${esc(v.docNo)}">반려</button>
@@ -289,7 +340,7 @@
 
     // 내 신청
     $("mine-body").innerHTML = d.mine.length ? d.mine.map(v => `<tr>
-        <td>${esc(v.docNo)}</td><td>${esc(v.typeLabel)}</td><td>${period(v)}</td><td>${esc(v.reason)}</td>
+        <td><span class="doc-link" data-open="${esc(v.docNo)}">${esc(v.docNo)}</span></td><td>${esc(v.typeLabel)}</td><td>${period(v)}${clip(v)}</td><td>${esc(v.reason)}</td>
         <td>${stageTag(v)}</td><td>${trail(v)}</td>
         <td>${v.canWithdraw ? `<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.status === "승인" ? 1 : ""}">${v.status === "승인" ? "취소" : "회수"}</button>` : ""}</td>
       </tr>`).join("")
@@ -344,12 +395,101 @@
       $("all-sum").innerHTML = [["진행중", "대기"], ["승인", "승인"], ["반려", "반려"], ["회수", "회수·취소"]]
         .map(([s, label]) => `<div class="sum"><b>${n(s)}</b>${label}</div>`).join("");
       $("all-body").innerHTML = d.all.length ? d.all.map(v => `<tr>
-          <td>${esc(v.docNo)}</td><td>${esc(v.typeLabel)}</td><td>${esc(v.drafterName)}<div class="who-dept">${esc(v.deptName)}</div></td>
-          <td>${esc(String(v.draftedAt).slice(0, 10))}</td><td>${period(v)}</td><td>${stageTag(v)}</td><td>${trail(v)}</td>
+          <td><span class="doc-link" data-open="${esc(v.docNo)}">${esc(v.docNo)}</span></td><td>${esc(v.typeLabel)}</td><td>${esc(v.drafterName)}<div class="who-dept">${esc(v.deptName)}</div></td>
+          <td>${esc(String(v.draftedAt).slice(0, 10))}</td><td>${period(v)}${clip(v)}</td><td>${stageTag(v)}</td><td>${trail(v)}</td>
         </tr>`).join("")
         : `<tr><td class="empty-row" colspan="7">아직 문서가 없습니다.</td></tr>`;
     }
+
+    // 문서 보기 창이 열려 있으면 새 데이터로 다시 그린다(결재·첨부가 바뀌었을 수 있음)
+    if (openDocNo) renderDoc(openDocNo);
   }
+
+  /* ── 문서 보기 (모든 종류 공통) ── */
+  let openDocNo = null;
+  const clip = v => v.files && v.files.length ? `<span class="clip">📎${v.files.length}</span>` : "";
+  const fmtSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round(n / 1024)) + "KB";
+  function findDoc(no) {
+    if (!data) return null;
+    return [].concat(data.myTurn || [], data.mine || [], data.all || []).find(v => v.docNo === no) || null;
+  }
+  function docFields(v) {
+    const rows = [["문서 종류", v.typeLabel + (v.category ? ` · ${v.category}` : "")], ["기안자", `${v.drafterName} (${v.deptName})`], ["기안일", v.draftedAt]];
+    if (v.type === "leave") rows.push(["기간", `${v.startDate}${v.endDate !== v.startDate ? " ~ " + v.endDate : ""}`], ["연차 시간", hoursText(v.leaveHours)]);
+    if (v.type === "overtime") rows.push(["근무일", v.workDate], ["시간", fmtDays(v.hours) + "시간"]);
+    if (v.type === "expense") rows.push(["내역", v.item], ["금액", Number(v.amount).toLocaleString("ko-KR") + "원"], ["예산과목", v.budgetItem || "—"]);
+    if (v.program) rows.push(["관련 사업", v.program]);
+    if (v.reason) rows.push(["사유", v.reason]);
+    return `<dl>${rows.map(([k, val]) => `<dt>${esc(k)}</dt><dd>${esc(val)}</dd>`).join("")}</dl>`;
+  }
+  function renderDoc(no) {
+    const v = findDoc(no);
+    if (!v) { closeDoc(); return; }
+    const files = v.files || [];
+    const fileList = files.length ? `<ul class="file-list">${files.map(f => `<li>
+        <span class="fname">📎 ${esc(f.name)}</span><span class="fsize">${fmtSize(Number(f.size) || 0)}</span>
+        <button class="link-btn" data-download="${esc(f.path)}" data-fname="${esc(f.name)}">받기</button>
+        ${v.canDetach ? `<button class="link-btn" style="color:#c0392b;" data-detach="${esc(f.id)}">떼기</button>` : ""}</li>`).join("")}</ul>`
+      : `<div class="note">첨부 파일이 없습니다.</div>`;
+    const attach = v.canAttach ? `<div style="margin-top:8px;"><input type="file" id="m-files" multiple> <button class="mini-btn primary" data-attach-more="${esc(v.docNo)}">첨부 올리기</button>
+        <div class="hint">${v.status === "승인" ? "승인된 뒤에도 영수증·결과물 등을 더 붙일 수 있습니다." : "결재가 시작되기 전까지는 붙인 파일을 뗄 수 있습니다."}</div></div>` : "";
+    const acts = [];
+    if (v.myTurn) acts.push(`<button class="mini-btn primary" data-approve="${esc(v.docNo)}">승인</button>
+      <input type="text" placeholder="반려 사유 (반려할 때 필수)" data-reason="${esc(v.docNo)}">
+      <button class="mini-btn danger" data-reject="${esc(v.docNo)}">반려</button>`);
+    if (v.canWithdraw) acts.push(`<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.status === "승인" ? 1 : ""}">${v.status === "승인" ? "취소" : "회수"}</button>`);
+    $("doc-modal-body").innerHTML = `
+      <button class="close-x" data-close-doc aria-label="닫기">×</button>
+      <h3>${esc(v.type === "draft" ? v.title : v.typeLabel)}</h3>
+      <div class="sub"><span>${esc(v.docNo)}</span>${stageTag(v)}</div>
+      ${docFields(v)}
+      ${v.type === "draft" ? `<div class="sec"><h4>본문</h4><div class="body-text">${esc(v.body)}</div></div>` : ""}
+      <div class="sec"><h4>첨부 파일 (${files.length})</h4>${fileList}${attach}<div class="msg" id="m-file-msg"></div></div>
+      <div class="sec"><h4>결재 기록</h4>${trail(v)}</div>
+      ${acts.length ? `<div class="acts">${acts.join("")}</div><div class="msg" data-msg="${esc(v.docNo)}"></div>` : ""}`;
+  }
+  function openDoc(no) { openDocNo = no; renderDoc(no); $("doc-modal").classList.add("open"); }
+  function closeDoc() { openDocNo = null; $("doc-modal").classList.remove("open"); }
+  $("doc-modal").addEventListener("click", e => { if (e.target.id === "doc-modal" || e.target.hasAttribute("data-close-doc")) closeDoc(); });
+  document.addEventListener("keydown", e => { if (e.key === "Escape" && openDocNo) closeDoc(); });
+
+  /* ── 파일 올리기: 저장소에 올린 뒤 문서에 등록. 저장소 경로에는 한글을 쓸 수 없어 무작위 이름을 쓰고 원래 이름은 따로 둔다 ── */
+  const MAX_FILE = 20 * 1024 * 1024;
+  function checkFiles(list) {
+    const files = Array.from(list || []);
+    const big = files.filter(f => f.size > MAX_FILE);
+    if (big.length) return { ok: false, message: `20MB가 넘는 파일은 올릴 수 없습니다: ${big.map(f => f.name).join(", ")}` };
+    if (files.length > 20) return { ok: false, message: "한 번에 20개까지 올릴 수 있습니다." };
+    return { ok: true, files };
+  }
+  async function uploadFiles(docNo, files, onProgress) {
+    const failed = [];
+    for (let i = 0; i < files.length; i++) {
+      const f = files[i];
+      onProgress && onProgress(i + 1, files.length, f.name);
+      const ext = (f.name.match(/\.([A-Za-z0-9]{1,10})$/) || [, ""])[1].toLowerCase();
+      const id = (crypto.randomUUID ? crypto.randomUUID() : Date.now() + "-" + Math.random().toString(36).slice(2));
+      const path = `${docNo}/${id}${ext ? "." + ext : ""}`;
+      const up = await sb.storage.from("approval-files").upload(path, f, { contentType: f.type || "application/octet-stream", upsert: false });
+      if (up.error) { failed.push(`${f.name}(${up.error.message})`); continue; }
+      const r = await rpc("apv_attach", { p_doc_no: docNo, p_path: path, p_name: f.name, p_size: f.size, p_mime: f.type || "" });
+      if (!r || !r.ok) failed.push(`${f.name}(${(r && r.message) || "등록 실패"})`);
+    }
+    return failed;
+  }
+  async function downloadFile(path, name) {
+    // 받을 때마다 1분짜리 주소를 새로 만든다(미리 만들어 두면 시간이 지나 깨진다)
+    const { data: s, error } = await sb.storage.from("approval-files").createSignedUrl(path, 60, { download: name });
+    if (error) { alert("파일을 받을 수 없습니다: " + error.message); return; }
+    window.open(s.signedUrl, "_blank", "noopener");
+  }
+
+  $("f-files").addEventListener("change", () => {
+    const c = checkFiles($("f-files").files);
+    $("f-file-list").innerHTML = c.ok
+      ? c.files.map(f => `<li><span class="fname">📎 ${esc(f.name)}</span><span class="fsize">${fmtSize(f.size)}</span></li>`).join("")
+      : `<li class="need">${esc(c.message)}</li>`;
+  });
 
   async function refresh() {
     const r = await rpc("apv_sync");
@@ -391,10 +531,11 @@
   $("f-days").addEventListener("input", () => { convDays(); renderLeaveHint(); });
 
   // 문서 종류를 고르면 그 종류의 칸만 보이고, 보이는 칸만 필수로
-  const REQUIRED = { leave: ["f-start", "f-end", "f-days"], overtime: ["f-work", "f-hours"], expense: ["f-item", "f-amount"] };
+  const REQUIRED = { leave: ["f-start", "f-end", "f-days"], overtime: ["f-work", "f-hours"], expense: ["f-item", "f-amount"], draft: ["f-title", "f-body"] };
   function showGroup() {
     const type = $("f-type").value || "leave";
     document.querySelectorAll("[data-group]").forEach(g => { g.hidden = g.dataset.group !== type; });
+    $("reason-row").style.display = type === "draft" ? "none" : "";   // 일반 기안은 본문이 사유를 대신한다
     Object.keys(REQUIRED).forEach(k => REQUIRED[k].forEach(id => { $(id).required = k === type; }));
     renderRoute(); renderLeaveHint();
   }
@@ -434,6 +575,7 @@
     const v = id => $(id).value;
     if (type === "leave") return { startDate: v("f-start"), endDate: v("f-end") || v("f-start"), leaveHours: v("f-days"), reason: v("f-reason") };
     if (type === "overtime") return { workDate: v("f-work"), hours: v("f-hours"), program: v("f-ot-program"), reason: v("f-reason") };
+    if (type === "draft") return { category: v("f-category"), title: v("f-title"), body: v("f-body"), program: v("f-dr-program") };
     return { item: v("f-item"), amount: v("f-amount").replace(/[^\d]/g, ""), program: v("f-ex-program"), budgetItem: v("f-budget"), reason: v("f-reason") };
   }
 
@@ -442,23 +584,54 @@
     const msg = $("new-msg"); msg.className = "msg"; msg.textContent = "올리는 중...";
     $("submit-btn").disabled = true;
     const type = $("f-type").value;
+    const picked = checkFiles($("f-files").files);
+    if (!picked.ok) { msg.className = "msg err"; msg.textContent = picked.message; $("submit-btn").disabled = false; return; }
     try {
       const r = await rpc("apv_submit", { p_type: type, p_data: collect(type) });
       if (!r.ok) { msg.className = "msg err"; msg.textContent = r.message; return; }
+      // 문서가 저장된 뒤 첨부를 올린다. 일부가 실패해도 문서는 남고, 「문서 보기」에서 다시 붙일 수 있다
+      let failed = [];
+      if (picked.files.length) failed = await uploadFiles(r.docNo, picked.files, (i, n, name) => { msg.textContent = `${r.docNo} 올림 · 첨부 ${i}/${n} 올리는 중 (${name})`; });
       // 저장이 성공한 뒤에만 입력칸을 비운다(문서 종류는 그대로 둔다)
-      $("new-form").reset(); $("f-type").value = type; showGroup();
-      msg.className = "msg ok"; msg.textContent = `${r.docNo} 올렸습니다 — 지금 단계: ${r.stageLabel}`;
+      $("new-form").reset(); $("f-type").value = type; showGroup(); $("f-file-list").innerHTML = "";
+      if (failed.length) { msg.className = "msg err"; msg.textContent = `${r.docNo} 올렸습니다(${r.stageLabel}). 다만 첨부 ${failed.length}개를 못 붙였습니다: ${failed.join(", ")} — 「내 신청」에서 문서를 열어 다시 붙여 주세요.`; }
+      else { msg.className = "msg ok"; msg.textContent = `${r.docNo} 올렸습니다${picked.files.length ? ` (첨부 ${picked.files.length}개)` : ""} — 지금 단계: ${r.stageLabel}`; }
       await refresh();
     } catch (err) { msg.className = "msg err"; msg.textContent = "서버에 연결하지 못했습니다. 입력한 내용은 그대로 있습니다."; }
     finally { $("submit-btn").disabled = false; }
   });
 
   document.addEventListener("click", async e => {
-    const t = e.target;
+    const t = e.target.closest("[data-open],[data-approve],[data-reject],[data-withdraw],[data-download],[data-detach],[data-attach-more]") || e.target;
+    if (t.dataset.open) { e.preventDefault(); openDoc(t.dataset.open); return; }
+    if (t.dataset.download) { downloadFile(t.dataset.download, t.dataset.fname); return; }
+    if (t.dataset.detach) {
+      if (!confirm("이 첨부 파일을 뗄까요?")) return;
+      const box = $("m-file-msg"); box.className = "msg"; box.textContent = "떼는 중...";
+      const r = await rpc("apv_detach", { p_file_id: t.dataset.detach });
+      if (!r.ok) { box.className = "msg err"; box.textContent = r.message; return; }
+      await sb.storage.from("approval-files").remove([r.path]);   // 저장소 파일도 지운다(실패해도 목록에서는 이미 빠짐)
+      await refresh();
+      return;
+    }
+    if (t.dataset.attachMore) {
+      const c = checkFiles(($("m-files") || {}).files);
+      const box = $("m-file-msg");
+      if (!c.ok) { box.className = "msg err"; box.textContent = c.message; return; }
+      if (!c.files.length) { box.className = "msg err"; box.textContent = "올릴 파일을 먼저 고르세요."; return; }
+      t.disabled = true;
+      const failed = await uploadFiles(t.dataset.attachMore, c.files, (i, n, name) => { box.className = "msg"; box.textContent = `첨부 ${i}/${n} 올리는 중 (${name})`; });
+      await refresh();
+      const box2 = $("m-file-msg");
+      if (box2) { box2.className = failed.length ? "msg err" : "msg ok"; box2.textContent = failed.length ? `못 붙인 파일: ${failed.join(", ")}` : `${c.files.length}개를 붙였습니다.`; }
+      return;
+    }
     if (t.dataset.approve || t.dataset.reject) {
       const docNo = t.dataset.approve || t.dataset.reject;
-      const box = document.querySelector(`[data-msg="${CSS.escape(docNo)}"]`);
-      const reason = (document.querySelector(`[data-reason="${CSS.escape(docNo)}"]`) || {}).value || "";
+      // 같은 문서가 「내 차례」 카드와 문서 보기 창에 함께 있을 수 있으니, 누른 버튼이 있는 곳에서 사유·안내칸을 찾는다
+      const scope = t.closest(".modal, .turn-card") || document;
+      const box = scope.querySelector(`[data-msg="${CSS.escape(docNo)}"]`) || document.querySelector(`[data-msg="${CSS.escape(docNo)}"]`);
+      const reason = (scope.querySelector(`[data-reason="${CSS.escape(docNo)}"]`) || {}).value || "";
       if (t.dataset.reject && !reason.trim()) { box.className = "msg err"; box.textContent = "반려 사유를 적어 주세요."; return; }
       t.disabled = true; box.className = "msg"; box.textContent = "처리 중...";
       try {
@@ -533,6 +706,7 @@
         .on("postgres_changes", { event: "*", schema: "public", table: "approval_docs" }, quietRefresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "departments" }, quietRefresh)
         .on("postgres_changes", { event: "*", schema: "public", table: "leave_grants" }, quietRefresh)
+        .on("postgres_changes", { event: "*", schema: "public", table: "approval_files" }, quietRefresh)
         .subscribe();
     }
     clearInterval(timer);
