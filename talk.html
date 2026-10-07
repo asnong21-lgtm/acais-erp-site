@@ -17,6 +17,7 @@
 <style>
   body{ background:var(--bg); display:flex; flex-direction:column; height:100vh; height:100dvh; }
   .talk-header{ flex:0 0 auto; }
+  .push-btn{ border:1px solid rgba(255,255,255,.45); background:rgba(255,255,255,.12); color:#fff; font:inherit; font-size:12px; font-weight:700; border-radius:12px; padding:3px 10px; cursor:pointer; margin-right:6px; }
   /* 설치된 앱으로 열렸을 때: 아이폰 상단·하단 여백, ERP 지도 링크 숨김(공개 사이트에는 없는 페이지) */
   @media (display-mode: standalone){
     .talk-header{ padding-top:calc(16px + env(safe-area-inset-top)); }
@@ -179,8 +180,15 @@
     $("login-screen").style.display = "none";
     $("talk-wrap").style.display = "flex";
     const sub = me.center ? "·" + (CENTER_LABEL[me.center] || me.center) : "";
-    $("who-box").innerHTML = `${esc(me.name)} (${esc(ROLE_LABEL[me.role] || me.role)}${esc(sub)}) · <a href="#" id="logout-link" style="color:#fff; text-decoration:underline;">로그아웃</a>`;
-    $("logout-link").addEventListener("click", async e => { e.preventDefault(); await sb.auth.signOut(); location.reload(); });
+    $("who-box").innerHTML = `<button id="push-btn" class="push-btn" style="display:none;"></button> ${esc(me.name)} (${esc(ROLE_LABEL[me.role] || me.role)}${esc(sub)}) · <a href="#" id="logout-link" style="color:#fff; text-decoration:underline;">로그아웃</a>`;
+    $("logout-link").addEventListener("click", async e => {
+      e.preventDefault();
+      await pushOff(true);   // 이 기기로 더 이상 알림이 오지 않게 (다른 사람이 같은 기기를 쓸 수 있으므로)
+      await sb.auth.signOut();
+      location.reload();
+    });
+    $("push-btn").addEventListener("click", onPushButton);
+    updatePushButton();
   }
 
   async function enter() {
@@ -190,6 +198,7 @@
     showTalk();
     await refresh(true);
     startLive();
+    openRoomFromUrl(location.href);
   }
 
   $("login-btn").addEventListener("click", async () => {
@@ -227,6 +236,8 @@
 
     const total = state.rooms.reduce((s, r) => s + (r.unread || 0), 0);
     document.title = (total ? "(" + total + ") " : "") + "단톡 - 시민활동통합지원단";
+    // 홈 화면 아이콘의 숫자 표시 (지원하는 휴대폰만)
+    try { if (total && navigator.setAppBadge) navigator.setAppBadge(total); else if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch (e) {}
   }
   function order(r) {
     const i = ["room_all", "room_office", "room_public", "room_village", "room_social", "room_rural", "room_regen"].indexOf(r.id);
@@ -369,6 +380,8 @@
       ta.value = "";
       autoGrow();
       if (!current.roomId) current = { roomId: data.room_id };
+      // 방의 다른 멤버들 휴대폰으로 알림 보내기 (실패해도 메시지는 이미 저장됨)
+      sb.functions.invoke("talk-push", { body: { action: "notify", message_id: data.id } }).catch(() => {});
       await refresh(true);
     } catch (e) {
       $("chat-err").textContent = "서버에 연결하지 못했습니다. 입력한 내용은 그대로 남겨 두었어요.";
@@ -434,6 +447,83 @@
   }
   // 공개 사이트에는 ERP 지도가 없으므로 링크를 숨긴다
   if (location.hostname.endsWith("github.io")) document.querySelectorAll(".erp-link").forEach(a => a.style.display = "none");
+
+  /* ── 휴대폰 알림 (Web Push) ── */
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const installedApp = (window.matchMedia && window.matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+  function keyBytes(b64) {
+    const p = b64.replace(/-/g, "+").replace(/_/g, "/") + "===".slice((b64.length + 3) % 4);
+    return Uint8Array.from(atob(p), c => c.charCodeAt(0));
+  }
+  async function currentSub() {
+    if (!("serviceWorker" in navigator)) return null;
+    const reg = await navigator.serviceWorker.getRegistration();
+    return reg ? reg.pushManager.getSubscription() : null;
+  }
+  async function pushState() {
+    if (location.protocol !== "https:" || !("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
+      return isIOS && !installedApp ? "ios-install" : "unsupported";
+    }
+    if (Notification.permission === "denied") return "denied";
+    return (await currentSub()) ? "on" : "off";
+  }
+  async function saveSub(sub) {
+    const j = sub.toJSON();
+    const { error } = await sb.rpc("push_subscribe", { p_endpoint: j.endpoint, p_p256dh: j.keys.p256dh, p_auth: j.keys.auth, p_ua: navigator.userAgent });
+    if (error) throw error;
+  }
+  async function updatePushButton() {
+    const btn = $("push-btn");
+    if (!btn) return;
+    const st = await pushState();
+    const label = { on: "🔔 알림 켜짐", off: "🔕 알림 켜기", denied: "🔕 알림 차단됨", "ios-install": "🔕 알림 켜기" }[st];
+    btn.style.display = label ? "inline-block" : "none";
+    btn.textContent = label || "";
+    btn.dataset.state = st;
+    // 이 기기의 알림 주소를 지금 로그인한 사람에게 연결 (기기를 다른 직원이 쓰게 된 경우 대비)
+    if (st === "on") { const sub = await currentSub(); if (sub) saveSub(sub).catch(() => {}); }
+  }
+  async function onPushButton() {
+    const st = $("push-btn").dataset.state;
+    if (st === "ios-install") { alert("아이폰은 사파리에서 공유 버튼 → 「홈 화면에 추가」로 단톡 앱을 설치한 뒤, 홈 화면의 단톡 아이콘으로 열어야 알림을 켤 수 있어요. (iOS 16.4 이상)"); return; }
+    if (st === "denied") { alert("이 기기에서 단톡 알림이 차단되어 있어요. 휴대폰 설정 → 알림(또는 브라우저 사이트 설정)에서 단톡 알림을 허용한 뒤 다시 눌러 주세요."); return; }
+    if (st === "on") {
+      if (confirm("이 기기에서 단톡 알림을 끌까요?")) { await pushOff(false); updatePushButton(); }
+      return;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") { updatePushButton(); return; }
+      const reg = await navigator.serviceWorker.register("sw.js");
+      await navigator.serviceWorker.ready;
+      const { data, error } = await sb.functions.invoke("talk-push", { body: { action: "key" } });
+      if (error || !data || !data.publicKey) throw error || new Error("알림 키를 받지 못했습니다.");
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(data.publicKey) });
+      await saveSub(sub);
+      alert("알림을 켰어요. 앱을 닫아 두어도 새 메시지가 오면 알려 드려요. (밤 9시~아침 8시에는 알림을 보내지 않아요)");
+    } catch (e) {
+      alert("알림을 켜지 못했어요: " + sbErr(e));
+    }
+    updatePushButton();
+  }
+  async function pushOff(quiet) {
+    try {
+      const sub = await currentSub();
+      if (!sub) return;
+      await sb.rpc("push_unsubscribe", { p_endpoint: sub.endpoint });
+      await sub.unsubscribe();
+    } catch (e) { if (!quiet) alert("알림을 끄지 못했어요: " + sbErr(e)); }
+  }
+  // 알림을 눌러 들어오면 그 방을 연다
+  function openRoomFromUrl(u) {
+    try {
+      const room = new URL(u, location.href).searchParams.get("room");
+      if (room && me && state.rooms.some(r => r.id === room)) openRoom({ roomId: room });
+    } catch (e) {}
+  }
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", e => { if (e.data && e.data.type === "open-room") openRoomFromUrl(e.data.url); });
+  }
 
   /* ── 시작 ── */
   if (!window.sb) { document.body.insertAdjacentHTML("beforeend", `<p style="padding:40px; text-align:center;">서버 연결 스크립트를 불러오지 못했습니다.</p>`); return; }
