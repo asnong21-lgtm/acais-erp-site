@@ -8,7 +8,7 @@ Write-Host "Serving $root on http://localhost:$port/"
 $mime = @{
   ".html"="text/html; charset=utf-8"; ".css"="text/css"; ".js"="application/javascript";
   ".json"="application/json"; ".png"="image/png"; ".jpg"="image/jpeg"; ".svg"="image/svg+xml";
-  ".gs"="text/plain; charset=utf-8"; ".md"="text/plain; charset=utf-8"; ".rules"="text/plain; charset=utf-8"
+  ".gs"="text/plain; charset=utf-8"; ".md"="text/plain; charset=utf-8"; ".rules"="text/plain; charset=utf-8"; ".webmanifest"="application/manifest+json"
 }
 
 while ($listener.IsListening) {

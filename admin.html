@@ -5,42 +5,65 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>운영관리자 - 시민활동통합지원단</title>
 <link rel="stylesheet" href="assets/style.css">
+<style>
+  .admin-header .wrap{ flex-wrap:wrap; gap:6px 12px; }
+  .admin-header .hlinks{ display:flex; flex-wrap:wrap; gap:6px 0; align-items:center; }
+  .admin-header .hlinks a{ white-space:nowrap; color:#cfe0ee; font-size:12px; font-weight:500; margin-right:10px; text-decoration:underline; }
+  .admin-header .hlinks a.talk{ color:#fff; font-size:12.5px; font-weight:700; background:rgba(255,255,255,.14); padding:3px 10px; border-radius:12px; text-decoration:none; }
+  .switch-link{ display:block; margin-top:14px; text-align:center; font-size:12.5px; color:var(--sub); }
+  .switch-link a{ color:var(--navy); text-decoration:underline; cursor:pointer; }
+  .login-box .ok{ color:var(--teal); font-size:12.5px; margin-top:8px; line-height:1.6; }
+  .admin-table td{ vertical-align:top; }
+  @media (max-width:720px){
+    .admin-header .logo{ font-size:15px; }
+    .admin-tabs{ flex-wrap:wrap; }
+    .admin-table{ display:block; overflow-x:auto; }
+  }
+</style>
 </head>
 <body>
 
 <header class="admin-header">
   <div class="wrap">
-    <div class="logo" style="color:#fff;">🛠️ 시민활동통합지원단 운영관리자 <a href="../erp-map.html" style="color:#cfe0ee; font-size:12px; font-weight:500; margin-left:14px; text-decoration:underline;">← ERP 지도</a></div>
+    <div>
+      <div class="logo" style="color:#fff;">🛠️ 운영관리자</div>
+      <div class="hlinks" style="margin-top:4px;">
+        <a href="../erp-map.html">← ERP 지도</a><a href="talk.html" class="talk">💬 단톡</a><a href="approval.html" class="talk">📝 전자결재</a>
+      </div>
+    </div>
     <div class="who" id="who-box"></div>
   </div>
 </header>
 
-<div id="unconfigured" class="content" style="display:none;">
-  <div class="wrap">
-    <div class="panel" style="text-align:center; padding:50px 24px;">
-      <div style="font-size:14px; color:var(--sub); line-height:1.8;">
-        아직 백엔드(Apps Script)가 연결되지 않았습니다.<br>
-        <code>site/assets/site.js</code>의 <code>CONFIG.API_BASE</code>에 배포된 웹앱 URL을 넣어주세요.
-      </div>
-    </div>
-  </div>
-</div>
-
 <div id="login-screen" style="display:none;">
-  <div class="login-box">
+  <div class="login-box" id="login-form-box">
     <h2>운영관리자 로그인</h2>
-    <p>직원 계정(이메일/비밀번호)으로 로그인하세요. 계정은 사무국 이상 권한자가 발급합니다.</p>
-    <input type="email" id="login-email" placeholder="이메일">
-    <input type="password" id="login-pw" placeholder="비밀번호">
+    <p>직원 계정(이메일/비밀번호)으로 로그인하세요. 계정은 단장·사무국이 「직원 권한 관리」에서 만들어 줍니다.</p>
+    <input type="email" id="login-email" placeholder="이메일" autocomplete="username">
+    <input type="password" id="login-pw" placeholder="비밀번호" autocomplete="current-password">
     <button class="btn btn-primary" style="width:100%; justify-content:center;" id="login-btn">로그인</button>
     <div class="err" id="login-err"></div>
+    <div class="switch-link">처음 쓰는 단장이신가요? <a id="to-signup">계정 만들기</a></div>
+  </div>
+  <div class="login-box" id="signup-box" style="display:none;">
+    <h2>계정 만들기</h2>
+    <p>지원단 시스템을 처음 쓸 때 <b>단장이 한 번만</b> 합니다. 직원 계정은 로그인한 뒤 「직원 권한 관리」에서 만들어 주세요.<br>
+       여기서 만든 다른 계정은 단장이 승인하기 전까지 「승인대기」입니다.</p>
+    <input type="text" id="su-name" placeholder="이름">
+    <input type="email" id="su-email" placeholder="이메일" autocomplete="username">
+    <input type="password" id="su-pw" placeholder="비밀번호 (8자 이상)" autocomplete="new-password">
+    <button class="btn btn-primary" style="width:100%; justify-content:center;" id="signup-btn">계정 만들기</button>
+    <div class="err" id="su-err"></div>
+    <div class="ok" id="su-ok"></div>
+    <div class="switch-link"><a id="to-login">← 로그인으로</a></div>
   </div>
 </div>
 
 <div id="pending-screen" style="display:none;">
   <div class="login-box">
     <h2>승인 대기중</h2>
-    <p>계정은 만들어졌지만 아직 권한이 부여되지 않았습니다. 사무국 이상 권한을 가진 담당자에게 권한 부여를 요청해주세요.</p>
+    <p>계정은 만들어졌지만 아직 권한이 부여되지 않았습니다. 단장·사무국에게 권한 부여를 요청해주세요.</p>
+    <button class="btn btn-ghost" id="pending-logout">로그아웃</button>
   </div>
 </div>
 
@@ -50,6 +73,7 @@
     <button class="admin-tab" data-tab="sug">건의사항 관리</button>
     <button class="admin-tab" data-tab="notice">공지사항 관리</button>
     <button class="admin-tab" data-tab="staff" id="staff-tab-btn" style="display:none;">직원 권한 관리</button>
+    <button class="admin-tab" data-tab="me">내 계정</button>
   </div>
 
   <section class="content">
@@ -88,7 +112,7 @@
           </form>
         </div>
         <div class="panel" id="notice-readonly-note" style="display:none; margin-bottom:16px; color:var(--sub); font-size:12.5px;">
-          공지사항 등록/수정은 사무국 이상 권한만 가능합니다. (조회만 가능)
+          공지사항 등록/수정은 단장·사무국만 가능합니다. (조회만 가능)
         </div>
         <table class="admin-table">
           <thead><tr><th>분류</th><th>제목</th><th>게시일</th><th>게시여부</th></tr></thead>
@@ -101,18 +125,18 @@
           <form id="staff-form">
             <div class="form-row"><label>이메일</label><input type="email" id="s-email" required></div>
             <div class="form-row"><label>이름</label><input type="text" id="s-name" required></div>
-            <div class="form-row"><label>초기 비밀번호</label><input type="text" id="s-pw" required placeholder="발급 후 본인이 로그인해서 변경 권장"></div>
+            <div class="form-row"><label>초기 비밀번호</label><input type="text" id="s-pw" required minlength="8" placeholder="8자 이상 · 직원에게 따로 전달하고, 첫 로그인 후 「내 계정」에서 바꾸게 하세요" autocomplete="off"></div>
             <div class="form-row"><label>권한</label>
               <select id="s-role">
-                <option value="pending">승인대기</option>
                 <option value="center">센터담당자</option>
                 <option value="office">사무국</option>
-                <option value="owner">대표</option>
+                <option value="owner">단장</option>
+                <option value="pending">승인대기</option>
               </select>
             </div>
             <div class="form-row"><label>소속 센터</label>
               <select id="s-center">
-                <option value="">(해당없음)</option>
+                <option value="">(해당없음 · 사무국)</option>
                 <option value="public">공익활동지원센터</option>
                 <option value="village">마을공동체지원센터</option>
                 <option value="social">사회적경제지원센터</option>
@@ -121,12 +145,24 @@
               </select>
             </div>
             <div class="form-actions"><button type="submit" class="btn btn-primary">직원 추가</button></div>
+            <div class="err" id="staff-err" style="color:var(--accent); font-size:12.5px;"></div>
           </form>
         </div>
         <table class="admin-table">
-          <thead><tr><th>이메일</th><th>이름</th><th>권한</th><th>소속 센터</th><th>사용</th></tr></thead>
-          <tbody id="staff-body"><tr><td class="empty-row" colspan="5">불러오는 중...</td></tr></tbody>
+          <thead><tr><th>이메일</th><th>이름</th><th>권한</th><th>소속 센터</th><th>사용</th><th>비밀번호</th></tr></thead>
+          <tbody id="staff-body"><tr><td class="empty-row" colspan="6">불러오는 중...</td></tr></tbody>
         </table>
+      </div>
+
+      <div id="tab-me" class="admin-panel" style="display:none;">
+        <div class="panel" style="max-width:420px;">
+          <form id="pw-form">
+            <div class="form-row"><label>새 비밀번호</label><input type="password" id="pw-new" minlength="8" required autocomplete="new-password"></div>
+            <div class="form-row"><label>한 번 더</label><input type="password" id="pw-new2" minlength="8" required autocomplete="new-password"></div>
+            <div class="form-actions"><button type="submit" class="btn btn-primary">비밀번호 바꾸기</button></div>
+            <div id="pw-msg" style="font-size:12.5px; margin-top:8px;"></div>
+          </form>
+        </div>
       </div>
 
     </div>
@@ -153,216 +189,221 @@
 </script>
 
 <script src="assets/site.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/sb.js"></script>
 <script>
 (function () {
-  if (!CONFIG.API_BASE) {
-    document.getElementById("unconfigured").style.display = "block";
-    return;
-  }
-
-  const ROLE_LABEL = { owner: "대표", office: "사무국", center: "센터담당자", pending: "승인대기" };
+  const ROLE_LABEL = { owner: "단장", office: "사무국", center: "센터담당자", pending: "승인대기" };
   const CENTER_LABEL = { public: "공익활동", village: "마을공동체", social: "사회적경제", rural: "도농교류", regen: "도시재생" };
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const day = ts => ts ? new Date(ts).toLocaleDateString("sv-SE") : "";   // YYYY-MM-DD (브라우저 시간대)
+  const hhmm = t => String(t || "").slice(0, 5);
 
-  let session = null; // { token, name, role, center }
+  let me = null; // staff 행
 
-  function saved() {
-    try { return JSON.parse(sessionStorage.getItem("admin_session") || "null"); }
-    catch (e) { return null; }
+  function show(which) {
+    $("login-screen").style.display = which === "login" ? "block" : "none";
+    $("pending-screen").style.display = which === "pending" ? "block" : "none";
+    $("admin-shell").style.display = which === "admin" ? "block" : "none";
+    if (which !== "admin") $("who-box").innerHTML = "";
   }
-  function save(s) { sessionStorage.setItem("admin_session", JSON.stringify(s)); }
-  function clear() { sessionStorage.removeItem("admin_session"); }
+  async function logout() { await sb.auth.signOut(); location.reload(); }
 
-  async function apiGet(action, params) {
-    const qs = new URLSearchParams({ action, token: session ? session.token : "", ...(params || {}) });
-    const res = await fetch(`${CONFIG.API_BASE}?${qs.toString()}`);
-    return res.json();
-  }
-  async function apiPost(action, payload) {
-    const res = await fetch(`${CONFIG.API_BASE}?action=${action}`, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ token: session ? session.token : "", ...(payload || {}) }),
+  /* ── 로그인 / 계정 만들기 ── */
+  $("to-signup").addEventListener("click", () => { $("login-form-box").style.display = "none"; $("signup-box").style.display = "block"; });
+  $("to-login").addEventListener("click", () => { $("signup-box").style.display = "none"; $("login-form-box").style.display = "block"; });
+  $("pending-logout").addEventListener("click", logout);
+
+  $("login-btn").addEventListener("click", async () => {
+    $("login-err").textContent = "";
+    const { error } = await sb.auth.signInWithPassword({ email: $("login-email").value.trim(), password: $("login-pw").value });
+    if (error) { $("login-err").textContent = sbErr(error); return; }
+    $("login-pw").value = "";
+    enter();
+  });
+  $("login-pw").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) $("login-btn").click(); });
+
+  $("signup-btn").addEventListener("click", async () => {
+    $("su-err").textContent = ""; $("su-ok").textContent = "";
+    const name = $("su-name").value.trim(), email = $("su-email").value.trim(), password = $("su-pw").value;
+    if (!name) { $("su-err").textContent = "이름을 입력하세요."; return; }
+    if (password.length < 8) { $("su-err").textContent = "비밀번호는 8자 이상으로 정하세요."; return; }
+    const { data, error } = await sb.auth.signUp({
+      email, password, options: { data: { name }, emailRedirectTo: location.href.split("#")[0] },
     });
-    return res.json();
-  }
+    if (error) { $("su-err").textContent = sbErr(error); return; }
+    $("su-pw").value = "";
+    if (data.session) { enter(); return; }
+    $("su-ok").textContent = "계정을 만들었습니다. " + email + " 로 온 확인 메일의 링크를 누른 뒤 로그인하세요.";
+  });
 
-  function showLoggedOut() {
-    document.getElementById("login-screen").style.display = "block";
-    document.getElementById("pending-screen").style.display = "none";
-    document.getElementById("admin-shell").style.display = "none";
-  }
-  function showPending() {
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("pending-screen").style.display = "block";
-    document.getElementById("admin-shell").style.display = "none";
-  }
-  function showAdmin() {
-    document.getElementById("login-screen").style.display = "none";
-    document.getElementById("pending-screen").style.display = "none";
-    document.getElementById("admin-shell").style.display = "block";
-
-    const isOffice = session.role === "owner" || session.role === "office";
-    document.getElementById("who-box").innerHTML =
-      `${session.name} (${ROLE_LABEL[session.role] || session.role}${session.center ? "·" + (CENTER_LABEL[session.center] || session.center) : ""}) · <a href="#" id="logout-link" style="color:#fff; text-decoration:underline;">로그아웃</a>`;
-    document.getElementById("logout-link").addEventListener("click", (e) => { e.preventDefault(); clear(); location.reload(); });
-
-    document.getElementById("staff-tab-btn").style.display = isOffice ? "inline-block" : "none";
-    document.getElementById("notice-write-panel").style.display = isOffice ? "block" : "none";
-    document.getElementById("notice-readonly-note").style.display = isOffice ? "none" : "block";
-
-    loadReservations();
-    loadSuggestions();
-    loadNotices();
+  async function enter() {
+    try { me = await sbMe(); } catch (e) { me = null; }
+    if (!me) { show("login"); return; }
+    if (me.role === "pending" || !me.active) { show("pending"); return; }
+    show("admin");
+    const isOffice = me.role === "owner" || me.role === "office";
+    $("who-box").innerHTML = `${esc(me.name)} (${esc(ROLE_LABEL[me.role] || me.role)}${me.center ? "·" + esc(CENTER_LABEL[me.center] || me.center) : ""}) · <a href="#" id="logout-link" style="color:#fff; text-decoration:underline;">로그아웃</a>`;
+    $("logout-link").addEventListener("click", e => { e.preventDefault(); logout(); });
+    $("staff-tab-btn").style.display = isOffice ? "inline-block" : "none";
+    $("notice-write-panel").style.display = isOffice ? "block" : "none";
+    $("notice-readonly-note").style.display = isOffice ? "none" : "block";
+    // 단장 권한은 단장만 줄 수 있음
+    $("s-role").querySelector('option[value="owner"]').disabled = me.role !== "owner";
+    loadReservations(); loadSuggestions(); loadNotices();
     if (isOffice) loadStaff();
   }
 
-  document.getElementById("login-btn").addEventListener("click", async () => {
-    const email = document.getElementById("login-email").value;
-    const pw = document.getElementById("login-pw").value;
-    const errBox = document.getElementById("login-err");
-    errBox.textContent = "";
-    const result = await apiPost("login", { email, password: pw });
-    if (!result.ok) { errBox.textContent = result.message || "로그인 실패"; return; }
-    session = { token: result.token, name: result.name, role: result.role, center: result.center };
-    save(session);
-    showAdmin();
-  });
-
+  /* ── 대관신청 ── */
   async function loadReservations() {
-    const list = await apiGet("reservationsAdmin");
-    const body = document.getElementById("rsv-body");
-    if (!Array.isArray(list) || !list.length) { body.innerHTML = `<tr><td class="empty-row" colspan="8">접수된 신청이 없습니다.</td></tr>`; return; }
-    body.innerHTML = list.map(r => `<tr>
-        <td>${r.submittedAt || ""}</td><td>${r.space || ""}</td><td>${r.date || ""}</td>
-        <td>${r.start || ""}~${r.end || ""}</td><td>${r.name || ""}</td><td>${r.phone || ""}</td>
-        <td>${r.purpose || ""}</td>
-        <td>
-          <select class="status-select" data-id="${r.id}">
-            ${["접수대기", "승인", "반려"].map(s => `<option value="${s}" ${r.status === s ? "selected" : ""}>${s}</option>`).join("")}
-          </select>
-        </td>
+    const { data, error } = await sb.from("reservations")
+      .select("id,created_at,use_date,start_time,end_time,applicant,phone,purpose,status,spaces(name)")
+      .order("created_at", { ascending: false });
+    const body = $("rsv-body");
+    if (error) { body.innerHTML = `<tr><td class="empty-row" colspan="8">${esc(sbErr(error))}</td></tr>`; return; }
+    if (!data.length) { body.innerHTML = `<tr><td class="empty-row" colspan="8">접수된 신청이 없습니다.</td></tr>`; return; }
+    body.innerHTML = data.map(r => `<tr>
+        <td>${day(r.created_at)}</td><td>${esc(r.spaces ? r.spaces.name : "")}</td><td>${esc(r.use_date)}</td>
+        <td>${hhmm(r.start_time)}~${hhmm(r.end_time)}</td><td>${esc(r.applicant)}</td><td>${esc(r.phone)}</td>
+        <td>${esc(r.purpose)}</td>
+        <td><select class="status-select" data-id="${esc(r.id)}">
+          ${["접수대기", "승인", "반려"].map(s => `<option value="${s}" ${r.status === s ? "selected" : ""}>${s}</option>`).join("")}
+        </select></td>
       </tr>`).join("");
-    body.querySelectorAll(".status-select").forEach(sel => {
-      sel.addEventListener("change", async () => {
-        await apiPost("updateReservationStatus", { id: sel.dataset.id, status: sel.value });
-      });
-    });
+    body.querySelectorAll(".status-select").forEach(sel => sel.addEventListener("change", async () => {
+      const { error } = await sb.from("reservations").update({ status: sel.value }).eq("id", sel.dataset.id);
+      if (error) { alert(sbErr(error)); loadReservations(); }
+    }));
   }
 
+  /* ── 건의사항 ── */
   async function loadSuggestions() {
-    const list = await apiGet("suggestionsAdmin");
-    const body = document.getElementById("sug-body");
-    if (!Array.isArray(list) || !list.length) { body.innerHTML = `<tr><td class="empty-row" colspan="6">접수된 건의사항이 없습니다.</td></tr>`; return; }
-    body.innerHTML = list.map(s => `<tr>
-        <td>${s.date || ""}</td>
-        <td>${s.isPublic ? "공개" : "비공개"}</td>
-        <td>${s.title || ""}<div style="color:var(--sub); font-size:11.5px; margin-top:4px;">${s.content || ""}</div></td>
-        <td>${s.name || ""}<br>${s.phone || ""}</td>
+    const { data, error } = await sb.from("suggestions").select("*").order("created_at", { ascending: false });
+    const body = $("sug-body");
+    if (error) { body.innerHTML = `<tr><td class="empty-row" colspan="6">${esc(sbErr(error))}</td></tr>`; return; }
+    if (!data.length) { body.innerHTML = `<tr><td class="empty-row" colspan="6">접수된 건의사항이 없습니다.</td></tr>`; return; }
+    body.innerHTML = data.map(s => `<tr>
+        <td>${day(s.created_at)}</td>
+        <td>${s.is_public ? "공개" : "비공개"}</td>
+        <td>${esc(s.title)}<div style="color:var(--sub); font-size:11.5px; margin-top:4px; white-space:pre-wrap;">${esc(s.content)}</div></td>
+        <td>${esc(s.name)}<br>${esc(s.phone)}</td>
         <td class="answer-box">
-          <textarea data-id="${s.id}" placeholder="답변 작성">${s.answer || ""}</textarea>
-          <button class="mini-btn primary" data-save="${s.id}" style="margin-top:6px;">답변 저장</button>
+          <textarea data-id="${esc(s.id)}" placeholder="답변 작성">${esc(s.answer)}</textarea>
+          <button class="mini-btn primary" data-save="${esc(s.id)}" style="margin-top:6px;">답변 저장</button>
         </td>
-        <td>
-          <select class="status-select" data-id="${s.id}">
-            ${["접수", "처리중", "완료"].map(st => `<option value="${st}" ${s.status === st ? "selected" : ""}>${st}</option>`).join("")}
-          </select>
-        </td>
+        <td><select class="status-select" data-id="${esc(s.id)}">
+          ${["접수", "처리중", "완료"].map(st => `<option value="${st}" ${s.status === st ? "selected" : ""}>${st}</option>`).join("")}
+        </select></td>
       </tr>`).join("");
-    body.querySelectorAll(".status-select").forEach(sel => {
-      sel.addEventListener("change", async () => {
-        await apiPost("answerSuggestion", { id: sel.dataset.id, status: sel.value });
-      });
-    });
-    body.querySelectorAll("[data-save]").forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.save;
-        const textarea = body.querySelector(`textarea[data-id="${id}"]`);
-        await apiPost("answerSuggestion", { id, answer: textarea.value });
-        btn.textContent = "저장됨 ✓";
-        setTimeout(() => (btn.textContent = "답변 저장"), 1500);
-      });
-    });
+    body.querySelectorAll(".status-select").forEach(sel => sel.addEventListener("change", async () => {
+      const { error } = await sb.from("suggestions").update({ status: sel.value }).eq("id", sel.dataset.id);
+      if (error) { alert(sbErr(error)); loadSuggestions(); }
+    }));
+    body.querySelectorAll("[data-save]").forEach(btn => btn.addEventListener("click", async () => {
+      const id = btn.dataset.save;
+      const answer = body.querySelector(`textarea[data-id="${id}"]`).value;
+      const { error } = await sb.from("suggestions").update({ answer, answered_at: answer.trim() ? new Date().toISOString() : null }).eq("id", id);
+      if (error) { alert(sbErr(error)); return; }
+      btn.textContent = "저장됨 ✓";
+      setTimeout(() => (btn.textContent = "답변 저장"), 1500);
+    }));
   }
 
+  /* ── 공지사항 ── */
   async function loadNotices() {
-    const list = await Api.getNotices();
-    const body = document.getElementById("notice-body");
-    if (!Array.isArray(list) || !list.length) { body.innerHTML = `<tr><td class="empty-row" colspan="4">등록된 공지가 없습니다.</td></tr>`; return; }
-    body.innerHTML = list.map(n => `<tr><td>${n.cat || ""}</td><td>${n.title || ""}</td><td>${n.date || ""}</td><td>게시중</td></tr>`).join("");
+    const { data, error } = await sb.from("notices").select("id,category,title,posted_on,published")
+      .order("posted_on", { ascending: false }).order("id", { ascending: false });
+    const body = $("notice-body");
+    if (error) { body.innerHTML = `<tr><td class="empty-row" colspan="4">${esc(sbErr(error))}</td></tr>`; return; }
+    if (!data.length) { body.innerHTML = `<tr><td class="empty-row" colspan="4">등록된 공지가 없습니다.</td></tr>`; return; }
+    body.innerHTML = data.map(n => `<tr><td>${esc(n.category)}</td><td>${esc(n.title)}</td><td>${esc(n.posted_on)}</td><td>${n.published ? "게시중" : "숨김"}</td></tr>`).join("");
   }
-
-  document.getElementById("notice-form").addEventListener("submit", async (e) => {
+  $("notice-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    await apiPost("addNotice", {
-      cat: document.getElementById("n-cat").value || "공지사항",
-      title: document.getElementById("n-title").value,
-      body: document.getElementById("n-body").value,
-      published: document.getElementById("n-published").checked,
+    const { error } = await sb.from("notices").insert({
+      category: $("n-cat").value.trim() || "공지사항",
+      title: $("n-title").value, body: $("n-body").value,
+      published: $("n-published").checked,
     });
+    if (error) { alert(sbErr(error)); return; }
     e.target.reset();
-    document.getElementById("n-published").checked = true;
+    $("n-published").checked = true;
     loadNotices();
   });
 
+  /* ── 직원 권한 관리 (단장·사무국) ── */
   async function loadStaff() {
-    const list = await apiGet("staffList");
-    const body = document.getElementById("staff-body");
-    if (!Array.isArray(list) || !list.length) { body.innerHTML = `<tr><td class="empty-row" colspan="5">등록된 직원이 없습니다.</td></tr>`; return; }
-    body.innerHTML = list.map(s => `<tr>
-        <td>${s.email}</td><td>${s.name}</td>
-        <td>
-          <select class="status-select" data-email="${s.email}" data-field="role">
-            ${["pending", "center", "office", "owner"].map(r => `<option value="${r}" ${s.role === r ? "selected" : ""}>${ROLE_LABEL[r]}</option>`).join("")}
-          </select>
-        </td>
-        <td>
-          <select class="status-select" data-email="${s.email}" data-field="center">
-            <option value="" ${!s.center ? "selected" : ""}>(해당없음)</option>
-            ${Object.keys(CENTER_LABEL).map(c => `<option value="${c}" ${s.center === c ? "selected" : ""}>${CENTER_LABEL[c]}</option>`).join("")}
-          </select>
-        </td>
-        <td>
-          <select class="status-select" data-email="${s.email}" data-field="active">
-            <option value="true" ${s.active ? "selected" : ""}>사용</option>
-            <option value="false" ${!s.active ? "selected" : ""}>중지</option>
-          </select>
-        </td>
+    const { data, error } = await sb.from("staff").select("id,email,name,role,center,active").order("created_at");
+    const body = $("staff-body");
+    if (error) { body.innerHTML = `<tr><td class="empty-row" colspan="6">${esc(sbErr(error))}</td></tr>`; return; }
+    body.innerHTML = data.map(s => `<tr>
+        <td>${esc(s.email)}</td><td><input class="name-input" data-id="${s.id}" value="${esc(s.name)}" style="width:110px; padding:4px 6px; border:1px solid var(--line); border-radius:6px; font:inherit;"></td>
+        <td><select class="status-select" data-id="${s.id}" data-field="role">
+          ${["pending", "center", "office", "owner"].map(r => `<option value="${r}" ${s.role === r ? "selected" : ""}>${ROLE_LABEL[r]}</option>`).join("")}
+        </select></td>
+        <td><select class="status-select" data-id="${s.id}" data-field="center">
+          <option value="" ${!s.center ? "selected" : ""}>(해당없음)</option>
+          ${Object.keys(CENTER_LABEL).map(c => `<option value="${c}" ${s.center === c ? "selected" : ""}>${CENTER_LABEL[c]}</option>`).join("")}
+        </select></td>
+        <td><select class="status-select" data-id="${s.id}" data-field="active">
+          <option value="true" ${s.active ? "selected" : ""}>사용</option>
+          <option value="false" ${!s.active ? "selected" : ""}>중지</option>
+        </select></td>
+        <td><button class="mini-btn" data-reset="${s.id}" data-name="${esc(s.name)}">새로 정하기</button></td>
       </tr>`).join("");
-    body.querySelectorAll(".status-select").forEach(sel => {
-      sel.addEventListener("change", async () => {
-        const payload = { email: sel.dataset.email };
-        const val = sel.dataset.field === "active" ? sel.value === "true" : sel.value;
-        payload[sel.dataset.field] = val;
-        await apiPost("updateStaff", payload);
-      });
-    });
+    body.querySelectorAll(".status-select").forEach(sel => sel.addEventListener("change", async () => {
+      const patch = {};
+      patch[sel.dataset.field] = sel.dataset.field === "active" ? sel.value === "true" : sel.value;
+      const { error } = await sb.from("staff").update(patch).eq("id", sel.dataset.id);
+      if (error) alert(sbErr(error));
+      loadStaff();
+    }));
+    body.querySelectorAll(".name-input").forEach(inp => inp.addEventListener("change", async () => {
+      const name = inp.value.trim();
+      if (!name) { loadStaff(); return; }
+      const { error } = await sb.from("staff").update({ name }).eq("id", inp.dataset.id);
+      if (error) { alert(sbErr(error)); loadStaff(); return; }
+      inp.style.borderColor = "var(--teal)";
+      setTimeout(() => (inp.style.borderColor = ""), 1200);
+    }));
+    body.querySelectorAll("[data-reset]").forEach(btn => btn.addEventListener("click", async () => {
+      const pw = prompt(btn.dataset.name + " 님의 새 비밀번호 (8자 이상). 본인에게 따로 알려 주세요.");
+      if (pw == null) return;
+      const { data, error } = await sb.functions.invoke("staff-admin", { body: { action: "resetPassword", id: btn.dataset.reset, password: pw } });
+      const r = data || {};
+      alert(error ? sbErr(error) : (r.ok ? "비밀번호를 바꿨습니다." : r.message));
+    }));
   }
-
-  document.getElementById("staff-form").addEventListener("submit", async (e) => {
+  $("staff-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const result = await apiPost("addStaff", {
-      email: document.getElementById("s-email").value,
-      name: document.getElementById("s-name").value,
-      password: document.getElementById("s-pw").value,
-      role: document.getElementById("s-role").value,
-      center: document.getElementById("s-center").value,
-    });
-    if (!result.ok) { alert(result.message || "직원 추가 실패"); return; }
+    $("staff-err").textContent = "";
+    const { data, error } = await sb.functions.invoke("staff-admin", { body: {
+      action: "create",
+      email: $("s-email").value.trim(), name: $("s-name").value.trim(), password: $("s-pw").value,
+      role: $("s-role").value, center: $("s-center").value,
+    } });
+    const r = data || {};
+    if (error || !r.ok) { $("staff-err").textContent = error ? sbErr(error) : r.message; return; }
     e.target.reset();
     loadStaff();
   });
 
-  /* 초기 진입: 저장된 세션이 있으면 me로 검증 후 바로 관리자 화면 */
-  (async function init() {
-    const s = saved();
-    if (!s) { showLoggedOut(); return; }
-    session = s;
-    const me = await apiGet("me");
-    if (!me || me.role === undefined) { clear(); session = null; showLoggedOut(); return; }
-    if (me.role === "pending") { showPending(); return; }
-    session = { token: s.token, name: me.name, role: me.role, center: me.center };
-    showAdmin();
-  })();
+  /* ── 내 계정: 비밀번호 바꾸기 ── */
+  $("pw-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const a = $("pw-new").value, b = $("pw-new2").value;
+    const msg = $("pw-msg");
+    if (a !== b) { msg.style.color = "var(--accent)"; msg.textContent = "두 칸이 서로 다릅니다."; return; }
+    const { error } = await sb.auth.updateUser({ password: a });
+    msg.style.color = error ? "var(--accent)" : "var(--teal)";
+    msg.textContent = error ? sbErr(error) : "비밀번호를 바꿨습니다.";
+    if (!error) e.target.reset();
+  });
+
+  /* ── 시작: 이 탭에 로그인이 남아 있으면 바로 들어간다 ── */
+  if (!window.sb) { document.body.insertAdjacentHTML("beforeend", `<p style="padding:40px; text-align:center;">서버 연결 스크립트를 불러오지 못했습니다.</p>`); return; }
+  enter();
 })();
 </script>
 </body>

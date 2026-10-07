@@ -2,9 +2,9 @@
  * 시민활동통합지원단 홈페이지 - 공통 스크립트
  * 헤더/푸터를 여기 한 곳에서만 관리하면 모든 페이지에 반영됨 (유지관리 목적)
  *
- * [ERP 연동 안내] Google Sheets + Apps Script(apps-script/Code.gs)를 데이터베이스로 사용.
- * (Firebase는 Google 계정 2단계 인증 요구로 관리가 막혀 이 방식으로 전환함)
- * 배포된 Apps Script 웹앱 URL을 CONFIG.API_BASE에 넣으면 자동으로 실데이터 모드로 전환됨.
+ * [ERP 연동 안내] 2026-10-03부터 데이터베이스는 Supabase(프로젝트 acais-erp, 서울).
+ * 공개 페이지는 아래 window.Api 가 REST 로 직접 부르고, 직원 화면(운영관리자·단톡·전자결재)은 assets/sb.js 를 쓴다.
+ * (그 전에는 Google Sheets + Apps Script — apps-script/ 폴더, 예비로 남겨 둠)
  */
 
 const CONFIG = {
@@ -12,11 +12,15 @@ const CONFIG = {
   // 위 시트에서 Apps Script(apps-script/Code.gs)를 배포한 뒤, 그 웹앱 URL을 아래에 입력하면
   // useMock 값과 상관없이 자동으로 실제 데이터로 전환됩니다.
   API_BASE: "https://script.google.com/macros/s/AKfycbymsLGlQ04MZPDrMO8K9wCpQmaVY-SBWSO3zJIpYHM8EWnyaj7taTjCSWadnqz9EQXo/exec",
+  // 2026-10-03부터 실제 데이터는 Supabase 에 있다. (API_BASE 는 예전 Apps Script 백업 — 옮겨 가는 동안만 남겨 둠)
+  // 공개용(publishable) 키라 홈페이지에 있어도 된다. 무엇을 읽고 쓸 수 있는지는 데이터베이스 규칙(RLS)이 정한다.
+  SUPABASE_URL: "https://vwobpxyqsiynlybasnek.supabase.co",
+  SUPABASE_KEY: "sb_publishable_eujFGfxRNaVQ3TKtg3iWMw_9OohMjZo",
   useMock: false,
   orgName: "시민활동통합지원단",
   orgNameShort: "지원단",
 };
-CONFIG.useMock = CONFIG.useMock || !CONFIG.API_BASE;
+CONFIG.useMock = CONFIG.useMock || !CONFIG.SUPABASE_URL;
 
 const NAV_ITEMS = [
   { key: "intro", label: "지원단소개", href: "intro.html" },
@@ -116,47 +120,78 @@ function mountLayout(activeKey) {
  * window.Api로 선언(= const 아님): 다른 스크립트가 나중에 window.Api를
  * 교체할 가능성을 열어두기 위함 (const로 선언하면 다른 <script> 태그가
  * 참조하는 "Api"가 최초 선언에 고정되어 재할당이 무시되는 문제가 있었음).
+ *
+ * 공개 홈페이지는 로그인이 없으므로 supabase-js 없이 REST 로 바로 부른다.
+ * 실패하면 { ok:false, message } 를 돌려준다 (화면이 「접수됨」으로 잘못 보이지 않게).
  */
+async function sbRest(path, opt) {
+  const res = await fetch(`${CONFIG.SUPABASE_URL}/rest/v1/${path}`, Object.assign({}, opt, {
+    headers: Object.assign({ apikey: CONFIG.SUPABASE_KEY, "Content-Type": "application/json" }, (opt || {}).headers),
+  }));
+  if (!res.ok) {
+    let msg = "";
+    try { msg = (await res.json()).message || ""; } catch (e) {}
+    throw new Error(msg || ("HTTP " + res.status));
+  }
+  return res.status === 204 || res.status === 201 ? null : res.json();
+}
+function failMsg(e) {
+  const m = (e && e.message) || "";
+  if (/Failed to fetch|NetworkError/i.test(m)) return "서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  if (/check constraint|violates/i.test(m)) return "입력한 내용을 다시 확인해 주세요. (필수 칸, 시간 순서 등)";
+  return "처리하지 못했습니다: " + m;
+}
+
 window.Api = {
   async getNotices() {
     if (CONFIG.useMock) return MOCK_NOTICES;
-    const res = await fetch(`${CONFIG.API_BASE}?action=notices`);
-    return res.json();
+    const rows = await sbRest("notices?select=id,category,title,body,posted_on&published=eq.true&order=posted_on.desc,id.desc");
+    return rows.map(n => ({ id: n.id, cat: n.category, title: n.title, body: n.body, date: n.posted_on }));
   },
   async getSpaces() {
     if (CONFIG.useMock) return MOCK_SPACES;
-    const res = await fetch(`${CONFIG.API_BASE}?action=spaces`);
-    return res.json();
+    const rows = await sbRest("spaces?select=key,name,capacity&order=sort");
+    return rows.map(s => ({ key: s.key, name: s.name, cap: s.capacity }));
   },
   async getSuggestions() {
     if (CONFIG.useMock) return MOCK_SUGGESTIONS;
-    const res = await fetch(`${CONFIG.API_BASE}?action=suggestions`);
-    return res.json();
+    const rows = await sbRest("rpc/public_suggestions", { method: "POST", body: "{}" });
+    return rows.map(s => ({
+      id: s.id, date: s.posted_on, isPublic: s.is_public, status: s.status, answered: s.answered,
+      title: s.title, name: s.name, content: s.content || "", answer: s.answer || "",
+    }));
   },
-  async submitReservation(payload) {
+  async submitReservation(p) {
     if (CONFIG.useMock) {
-      console.log("[MOCK] 대관신청 제출:", payload);
-      return { ok: true, message: "(모의 제출) 실제 배포 시 공간예약 시트에 기록됩니다." };
+      console.log("[MOCK] 대관신청 제출:", p);
+      return { ok: true, message: "(모의 제출)" };
     }
-    const res = await fetch(`${CONFIG.API_BASE}?action=submitReservation`, {
-      method: "POST",
-      // Content-Type을 text/plain으로 두면 Apps Script 웹앱 호출 시 브라우저의
-      // CORS 사전요청(preflight)이 발생하지 않음. Code.gs는 내용만 JSON으로 파싱함.
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload),
-    });
-    return res.json();
+    try {
+      await sbRest("reservations", {
+        method: "POST", headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          space_key: p.space, use_date: p.date, start_time: p.start, end_time: p.end,
+          applicant: p.name, phone: p.phone, email: p.email || "",
+          people: p.people ? Number(p.people) : null, purpose: p.purpose || "",
+        }),
+      });
+      return { ok: true, message: "담당 센터에서 확인 후 승인 여부를 안내드립니다." };
+    } catch (e) { return { ok: false, message: failMsg(e) }; }
   },
-  async submitSuggestion(payload) {
+  async submitSuggestion(p) {
     if (CONFIG.useMock) {
-      console.log("[MOCK] 건의사항 제출:", payload);
-      return { ok: true, message: "(모의 제출) 실제 배포 시 건의민원관리 시트에 기록됩니다." };
+      console.log("[MOCK] 건의사항 제출:", p);
+      return { ok: true, message: "(모의 제출)" };
     }
-    const res = await fetch(`${CONFIG.API_BASE}?action=submitSuggestion`, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify(payload),
-    });
-    return res.json();
+    try {
+      await sbRest("suggestions", {
+        method: "POST", headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          name: p.name, phone: p.phone || "", email: p.email || "",
+          title: p.title, content: p.content, is_public: !!p.isPublic,
+        }),
+      });
+      return { ok: true, message: "소중한 의견 감사합니다. 담당자가 확인 후 답변드립니다." };
+    } catch (e) { return { ok: false, message: failMsg(e) }; }
   },
 };

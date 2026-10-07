@@ -1,0 +1,18 @@
+{
+  "id": "talk.html",
+  "name": "단톡 - 시민활동통합지원단",
+  "short_name": "단톡",
+  "description": "시민활동통합지원단 사내 메신저",
+  "lang": "ko",
+  "start_url": "talk.html?app=1",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#16324f",
+  "theme_color": "#16324f",
+  "icons": [
+    { "src": "assets/icons/talk-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/talk-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/icons/talk-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>단톡 - 시민활동통합지원단</title>
+<!-- 휴대폰 홈 화면에 추가하면 앱처럼 열린다 (웹앱) -->
+<link rel="manifest" href="talk.webmanifest">
+<meta name="theme-color" content="#16324f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="단톡">
+<link rel="apple-touch-icon" href="assets/icons/talk-apple-180.png">
+<link rel="icon" type="image/png" href="assets/icons/talk-192.png">
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  body{ background:var(--bg); display:flex; flex-direction:column; height:100vh; height:100dvh; }
+  .talk-header{ flex:0 0 auto; }
+  /* 설치된 앱으로 열렸을 때: 아이폰 상단·하단 여백, ERP 지도 링크 숨김(공개 사이트에는 없는 페이지) */
+  @media (display-mode: standalone){
+    .talk-header{ padding-top:calc(16px + env(safe-area-inset-top)); }
+    .erp-link{ display:none; }
+    #chat-input-wrap{ padding-bottom:env(safe-area-inset-bottom); background:#fff; }
+  }
+  .talk-header .wrap{ max-width:none; padding:0 20px; }
+  .talk-wrap{ display:flex; flex:1; min-height:0; background:var(--panel); border-top:1px solid var(--line); }
+  .talk-side{ width:300px; flex:0 0 300px; border-right:1px solid var(--line); display:flex; flex-direction:column; min-height:0; }
+  .talk-side-tabs{ display:flex; border-bottom:1px solid var(--line); }
+  .talk-side-tabs button{ flex:1; padding:12px 0; border:0; background:none; font:inherit; font-size:13px; font-weight:700; color:var(--sub); cursor:pointer; border-bottom:2px solid transparent; }
+  .talk-side-tabs button.active{ color:var(--navy); border-bottom-color:var(--navy); }
+  .talk-list{ flex:1; overflow-y:auto; min-height:0; }
+  .talk-sec{ padding:10px 16px 4px; font-size:11.5px; font-weight:700; color:var(--sub); }
+  .room-item{ display:flex; gap:10px; align-items:center; padding:10px 16px; cursor:pointer; border-bottom:1px solid #f1f2f4; }
+  .room-item:hover{ background:#f7f9fb; }
+  .room-item.active{ background:#eaf1f8; }
+  .room-ico{ width:36px; height:36px; flex:0 0 36px; border-radius:50%; background:#dfe8f1; color:var(--navy); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; }
+  .room-ico.group{ background:var(--teal-bg); color:var(--teal); }
+  .room-body{ flex:1; min-width:0; }
+  .room-top{ display:flex; justify-content:space-between; gap:6px; }
+  .room-name{ font-size:13.5px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .room-time{ font-size:11px; color:var(--sub); flex:0 0 auto; }
+  .room-bottom{ display:flex; justify-content:space-between; gap:6px; margin-top:3px; }
+  .room-prev{ font-size:12px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .badge-n{ background:#e5484d; color:#fff; font-size:11px; font-weight:700; border-radius:10px; padding:1px 7px; flex:0 0 auto; }
+  .person-sub{ font-size:11.5px; color:var(--sub); }
+
+  .talk-main{ flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; }
+  .chat-head{ padding:14px 20px; border-bottom:1px solid var(--line); }
+  .chat-head .t{ font-size:15px; font-weight:700; }
+  .chat-head .m{ font-size:12px; color:var(--sub); margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-body{ flex:1; overflow-y:auto; padding:16px 20px; background:#f4f6f9; min-height:0; }
+  .chat-empty{ margin:auto; color:var(--sub); font-size:13px; text-align:center; padding-top:80px; line-height:1.8; }
+  .day-div{ text-align:center; margin:14px 0 10px; }
+  .day-div span{ font-size:11.5px; color:var(--sub); background:#e7ebf0; padding:3px 12px; border-radius:10px; }
+  .msg{ display:flex; flex-direction:column; align-items:flex-start; margin-bottom:8px; }
+  .msg.mine{ align-items:flex-end; }
+  .msg .who{ font-size:11.5px; color:var(--sub); margin:0 4px 3px; }
+  .msg .row{ display:flex; align-items:flex-end; gap:6px; max-width:70%; }
+  .msg.mine .row{ flex-direction:row-reverse; }
+  .bubble{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:8px 12px; font-size:13.5px; line-height:1.55; white-space:pre-wrap; word-break:break-word; }
+  .msg.mine .bubble{ background:#fff4c2; border-color:#f1e19a; }
+  .bubble.deleted{ color:var(--sub); font-style:italic; background:#f1f2f4; }
+  .msg.system .bubble{ background:#fffbe6; border:1px dashed #e0c200; }
+  .msg .meta{ font-size:10.5px; color:var(--sub); white-space:nowrap; display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+  .msg:not(.mine) .meta{ align-items:flex-start; }
+  .del-btn{ border:0; background:none; color:var(--sub); font-size:10.5px; cursor:pointer; padding:0; text-decoration:underline; }
+
+  .chat-input{ border-top:1px solid var(--line); padding:10px 14px; display:flex; gap:8px; align-items:flex-end; background:#fff; }
+  .chat-input textarea{ flex:1; resize:none; border:1px solid var(--line); border-radius:8px; padding:9px 11px; font:inherit; font-size:13.5px; line-height:1.5; max-height:160px; min-height:40px; }
+  .hint{ font-size:11px; color:var(--sub); padding:0 14px 8px; background:#fff; }
+  .chat-input button{ height:40px; }
+  .chat-err{ color:var(--accent); font-size:12px; padding:0 14px 6px; background:#fff; min-height:0; }
+
+  @media (max-width:720px){
+    .talk-side{ width:100%; flex-basis:auto; }
+    .talk-wrap.in-room .talk-side{ display:none; }
+    .talk-wrap:not(.in-room) .talk-main{ display:none; }
+    .back-btn{ display:inline-block !important; }
+    .msg .row{ max-width:88%; }
+    .talk-sub{ display:none; }
+    .talk-header .wrap{ flex-wrap:wrap; gap:4px 12px; padding:0 16px; }
+  }
+  .back-btn{ display:none; border:0; background:none; font:inherit; font-size:18px; margin-right:8px; cursor:pointer; color:var(--navy); }
+</style>
+</head>
+<body>
+
+<header class="admin-header talk-header">
+  <div class="wrap">
+    <div class="logo" style="color:#fff; white-space:nowrap;">💬 단톡 <span class="talk-sub" style="font-size:12px; font-weight:500; color:#cfe0ee;">시민활동통합지원단 사내 메신저</span>
+      <a href="admin.html" style="color:#cfe0ee; font-size:12px; font-weight:500; margin-left:14px; text-decoration:underline;">운영관리자</a>
+      <a href="../erp-map.html" class="erp-link" style="color:#cfe0ee; font-size:12px; font-weight:500; margin-left:10px; text-decoration:underline;">← ERP 지도</a>
+      <a href="admin.html#me" style="color:#cfe0ee; font-size:12px; font-weight:500; margin-left:10px; text-decoration:underline;">비밀번호 변경</a>
+    </div>
+    <div class="who" id="who-box"></div>
+  </div>
+</header>
+
+<div id="login-screen" style="display:none;">
+  <div class="login-box">
+    <h2>단톡 로그인</h2>
+    <p>운영관리자와 같은 직원 계정으로 로그인합니다. (한 번 로그인하면 이 탭에서는 운영관리자·전자결재 화면도 그대로 열립니다)</p>
+    <input type="email" id="login-email" placeholder="이메일" autocomplete="username">
+    <input type="password" id="login-pw" placeholder="비밀번호" autocomplete="current-password">
+    <button class="btn btn-primary" style="width:100%; justify-content:center;" id="login-btn">로그인</button>
+    <div class="err" id="login-err"></div>
+  </div>
+</div>
+
+<div class="talk-wrap" id="talk-wrap" style="display:none;">
+  <aside class="talk-side">
+    <div class="talk-side-tabs">
+      <button class="active" data-side="rooms">대화방</button>
+      <button data-side="people">대화 시작</button>
+    </div>
+    <div class="talk-list" id="side-rooms"></div>
+    <div class="talk-list" id="side-people" style="display:none;"></div>
+  </aside>
+
+  <main class="talk-main">
+    <div class="chat-head">
+      <div class="t"><button class="back-btn" id="back-btn" title="목록으로">←</button><span id="chat-title">대화방을 고르세요</span></div>
+      <div class="m" id="chat-members"></div>
+    </div>
+    <div class="chat-body" id="chat-body">
+      <div class="chat-empty">왼쪽에서 대화방을 고르거나<br>「대화 시작」에서 동료를 골라 1:1 대화를 시작하세요.</div>
+    </div>
+    <div id="chat-input-wrap" style="display:none;">
+      <div class="chat-err" id="chat-err"></div>
+      <div class="chat-input">
+        <textarea id="chat-text" rows="1" placeholder="메시지 입력"></textarea>
+        <button class="btn btn-primary" id="send-btn">보내기</button>
+      </div>
+      <div class="hint">Enter 보내기 · Shift+Enter 줄바꿈 · 아무도 읽기 전에는 내가 보낸 메시지를 지울 수 있어요</div>
+    </div>
+  </main>
+</div>
+
+<script src="assets/site.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/sb.js"></script>
+<script>
+(function () {
+  const ROLE_LABEL = { owner: "단장", office: "사무국", center: "센터담당자" };
+  const CENTER_LABEL = { public: "공익활동지원센터", village: "마을공동체지원센터", social: "사회적경제지원센터", rural: "도농교류지원센터", regen: "도시재생지원센터" };
+  const KIND = { dm: "1:1", group: "단체", notice: "알림" };
+  const FALLBACK_MS = 60000;   // 실시간 연결이 끊겼을 때를 대비한 느린 새로고침
+
+  let me = null;        // staff 행
+  let state = { rooms: [], people: [] };
+  let current = null;   // { roomId } 또는 { to, name, role, center } (아직 방이 없는 1:1)
+  let sending = false;
+  let channel = null, fallbackTimer = null, refreshTimer = null;
+
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const ts = v => v ? new Date(v).getTime() : 0;
+
+  /* ── 시간 표시 ── */
+  function pad(n) { return String(n).padStart(2, "0"); }
+  function hm(t) { const d = new Date(t); const h = d.getHours(); return (h < 12 ? "오전 " : "오후 ") + ((h % 12) || 12) + ":" + pad(d.getMinutes()); }
+  function dayKey(t) { const d = new Date(t); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function dayLabel(t) { const d = new Date(t); return d.getFullYear() + "년 " + (d.getMonth() + 1) + "월 " + d.getDate() + "일 " + "일월화수목금토"[d.getDay()] + "요일"; }
+  function shortTime(t) {
+    if (!t) return "";
+    return dayKey(t) === dayKey(Date.now()) ? hm(t) : (new Date(t).getMonth() + 1) + "/" + new Date(t).getDate();
+  }
+
+  /* ── 화면 전환 ── */
+  function showLogin(msg) {
+    $("login-screen").style.display = "block";
+    $("talk-wrap").style.display = "none";
+    $("who-box").innerHTML = "";
+    if (msg) $("login-err").textContent = msg;
+    stopLive();
+  }
+  function showTalk() {
+    $("login-screen").style.display = "none";
+    $("talk-wrap").style.display = "flex";
+    const sub = me.center ? "·" + (CENTER_LABEL[me.center] || me.center) : "";
+    $("who-box").innerHTML = `${esc(me.name)} (${esc(ROLE_LABEL[me.role] || me.role)}${esc(sub)}) · <a href="#" id="logout-link" style="color:#fff; text-decoration:underline;">로그아웃</a>`;
+    $("logout-link").addEventListener("click", async e => { e.preventDefault(); await sb.auth.signOut(); location.reload(); });
+  }
+
+  async function enter() {
+    try { me = await sbMe(); } catch (e) { me = null; }
+    if (!me) { showLogin(); return; }
+    if (me.role === "pending" || !me.active) { await sb.auth.signOut(); showLogin("아직 승인되지 않았거나 사용이 중지된 계정입니다."); return; }
+    showTalk();
+    await refresh(true);
+    startLive();
+  }
+
+  $("login-btn").addEventListener("click", async () => {
+    $("login-err").textContent = "";
+    const { error } = await sb.auth.signInWithPassword({ email: $("login-email").value.trim(), password: $("login-pw").value });
+    if (error) { $("login-err").textContent = sbErr(error); return; }
+    $("login-pw").value = "";
+    enter();
+  });
+  $("login-pw").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) $("login-btn").click(); });
+
+  document.querySelectorAll(".talk-side-tabs button").forEach(b => b.addEventListener("click", () => {
+    document.querySelectorAll(".talk-side-tabs button").forEach(x => x.classList.toggle("active", x === b));
+    $("side-rooms").style.display = b.dataset.side === "rooms" ? "block" : "none";
+    $("side-people").style.display = b.dataset.side === "people" ? "block" : "none";
+  }));
+  $("back-btn").addEventListener("click", () => { $("talk-wrap").classList.remove("in-room"); current = null; renderRooms(); });
+
+  /* ── 방 목록 / 사람 목록 ── */
+  function renderRooms() {
+    const groups = state.rooms.filter(r => r.kind !== "1:1").sort((a, b) => order(a) - order(b));
+    const dms = state.rooms.filter(r => r.kind === "1:1").sort((a, b) => b.lastAt - a.lastAt);
+    const item = r => `
+      <div class="room-item ${current && current.roomId === r.id ? "active" : ""}" data-room="${esc(r.id)}">
+        <div class="room-ico ${r.kind === "1:1" ? "" : "group"}">${r.kind === "1:1" ? esc(r.name.slice(0, 1)) : "👥"}</div>
+        <div class="room-body">
+          <div class="room-top"><div class="room-name">${esc(r.name)}${r.kind !== "1:1" ? ` <span style="color:var(--sub); font-weight:500; font-size:11.5px;">${r.members.length}</span>` : ""}</div><div class="room-time">${shortTime(r.lastAt)}</div></div>
+          <div class="room-bottom"><div class="room-prev">${esc(r.lastText.split("\n")[0]) || "&nbsp;"}</div>${r.unread ? `<span class="badge-n">${r.unread > 99 ? "99+" : r.unread}</span>` : ""}</div>
+        </div>
+      </div>`;
+    $("side-rooms").innerHTML =
+      `<div class="talk-sec">단체방</div>` + (groups.map(item).join("") || `<div class="talk-sec" style="font-weight:500;">없음</div>`) +
+      `<div class="talk-sec">1:1 대화</div>` + (dms.map(item).join("") || `<div class="talk-sec" style="font-weight:500;">아직 없습니다. 「대화 시작」에서 동료를 고르세요.</div>`);
+    $("side-rooms").querySelectorAll("[data-room]").forEach(el => el.addEventListener("click", () => openRoom({ roomId: el.dataset.room })));
+
+    const total = state.rooms.reduce((s, r) => s + (r.unread || 0), 0);
+    document.title = (total ? "(" + total + ") " : "") + "단톡 - 시민활동통합지원단";
+  }
+  function order(r) {
+    const i = ["room_all", "room_office", "room_public", "room_village", "room_social", "room_rural", "room_regen"].indexOf(r.id);
+    return i < 0 ? 100 : i;
+  }
+  function renderPeople() {
+    const people = state.people.slice().sort((a, b) => a.name.localeCompare(b.name, "ko"));
+    $("side-people").innerHTML = `<div class="talk-sec">동료를 고르면 1:1 대화가 열립니다 (첫 메시지를 보낼 때 방이 만들어져요)</div>` +
+      (people.map(p => `
+        <div class="room-item" data-to="${esc(p.id)}">
+          <div class="room-ico">${esc(p.name.slice(0, 1))}</div>
+          <div class="room-body">
+            <div class="room-name">${esc(p.name)}</div>
+            <div class="person-sub">${esc(ROLE_LABEL[p.role] || "")}${p.center ? " · " + esc(CENTER_LABEL[p.center] || p.center) : ""}${p.dmRoomId ? " · 대화 중" : ""}</div>
+          </div>
+        </div>`).join("") || `<div class="talk-sec" style="font-weight:500;">아직 등록된 다른 직원이 없습니다.</div>`);
+    $("side-people").querySelectorAll("[data-to]").forEach(el => el.addEventListener("click", () => {
+      const p = state.people.find(x => x.id === el.dataset.to);
+      openRoom(p.dmRoomId ? { roomId: p.dmRoomId } : { to: p.id, name: p.name, role: p.role, center: p.center });
+      document.querySelector('.talk-side-tabs button[data-side="rooms"]').click();
+    }));
+  }
+
+  /* ── 대화방 ── */
+  async function openRoom(target) {
+    current = target;
+    $("talk-wrap").classList.add("in-room");
+    $("chat-err").textContent = "";
+    $("chat-input-wrap").style.display = "block";
+    renderRooms();
+    renderHead();
+    if (!current.roomId) {
+      $("chat-body").innerHTML = `<div class="chat-empty">${esc(current.name)} 님과 아직 나눈 대화가 없습니다.<br>첫 메시지를 보내면 1:1 대화방이 만들어집니다.</div>`;
+      $("chat-text").focus();
+      return;
+    }
+    $("chat-body").innerHTML = `<div class="chat-empty">불러오는 중...</div>`;
+    await loadMessages(true);
+    $("chat-text").focus();
+  }
+  function renderHead() {
+    if (!current) return;
+    if (!current.roomId) {
+      $("chat-title").textContent = current.name;
+      $("chat-members").textContent = "1:1 대화 · " + (ROLE_LABEL[current.role] || "") + (current.center ? " · " + (CENTER_LABEL[current.center] || "") : "");
+      return;
+    }
+    const r = state.rooms.find(x => x.id === current.roomId);
+    if (!r) return;
+    $("chat-title").textContent = r.name;
+    $("chat-members").textContent = r.kind === "1:1" ? "1:1 대화" : "단체방 · 멤버 " + r.members.length + "명: " + r.members.map(m => m.name).join(", ");
+    $("chat-input-wrap").style.display = r.kind === "알림" ? "none" : "block";
+  }
+
+  async function loadMessages(scrollToEnd) {
+    if (!current || !current.roomId) return;
+    const roomId = current.roomId;
+    const [msgRes, memRes] = await Promise.all([
+      sb.from("talk_messages").select("id,sender_id,body,created_at,deleted_at")
+        .eq("room_id", roomId).order("created_at", { ascending: false }).limit(200),
+      sb.from("talk_members").select("user_id,last_read_at").eq("room_id", roomId),
+    ]);
+    if (!current || current.roomId !== roomId) return; // 그새 다른 방으로 옮김
+    if (msgRes.error || memRes.error) { $("chat-body").innerHTML = `<div class="chat-empty">${esc(sbErr(msgRes.error || memRes.error))}</div>`; return; }
+
+    const room = state.rooms.find(x => x.id === roomId);
+    const names = {};
+    (room ? room.members : []).forEach(m => { names[m.id] = m.name; });
+    const others = memRes.data.filter(m => m.user_id !== me.id);
+    const msgs = msgRes.data.slice().reverse().map(m => {
+      const at = ts(m.created_at), mine = m.sender_id === me.id, deleted = !!m.deleted_at;
+      return {
+        id: m.id, from: m.sender_id || "", fromName: m.sender_id ? (names[m.sender_id] || "(나간 사람)") : "알림",
+        text: m.body, at, deleted, mine,
+        // 내가 보냈고, 아직 아무도 안 읽었을 때만 (최종 판단은 서버가 다시 한다)
+        canDelete: mine && !deleted && others.every(o => ts(o.last_read_at) < at),
+      };
+    });
+
+    const body = $("chat-body");
+    const nearEnd = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
+    let html = "", lastDay = "";
+    if (!msgs.length) html = `<div class="chat-empty">아직 메시지가 없습니다. 첫 인사를 남겨 보세요.</div>`;
+    msgs.forEach((m, i) => {
+      const dk = dayKey(m.at);
+      if (dk !== lastDay) { html += `<div class="day-div"><span>${dayLabel(m.at)}</span></div>`; lastDay = dk; }
+      const prev = msgs[i - 1];
+      const showWho = !m.mine && (!prev || prev.from !== m.from || dayKey(prev.at) !== dk);
+      const cls = m.mine ? "mine" : (m.from ? "" : "system");
+      html += `<div class="msg ${cls}">
+        ${showWho ? `<div class="who">${esc(m.fromName)}</div>` : ""}
+        <div class="row">
+          <div class="bubble ${m.deleted ? "deleted" : ""}">${m.deleted ? "삭제된 메시지입니다" : esc(m.text)}</div>
+          <div class="meta">${m.canDelete ? `<button class="del-btn" data-del="${esc(m.id)}">지우기</button>` : ""}<span>${hm(m.at)}</span></div>
+        </div>
+      </div>`;
+    });
+    body.innerHTML = html;
+    body.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => deleteMsg(b.dataset.del)));
+    if (scrollToEnd || nearEnd) body.scrollTop = body.scrollHeight;
+
+    // 읽음 처리: 보고 있는 방에 안읽음이 있으면 서버에 알린다
+    if (room && room.unread && !document.hidden) {
+      room.unread = 0;
+      renderRooms();
+      sb.rpc("talk_read", { p_room: roomId }).then(() => {}, () => {});
+    }
+  }
+
+  async function deleteMsg(id) {
+    if (!confirm("이 메시지를 지울까요? (대화에는 「삭제된 메시지입니다」로 남습니다)")) return;
+    const { error } = await sb.rpc("talk_delete", { p_id: id });
+    if (error) alert(sbErr(error));
+    await refresh(false);
+  }
+
+  /* ── 입력: Enter 보내기, Shift+Enter 줄바꿈, 한글 조합 중 Enter 무시, 성공했을 때만 입력칸 비우기 ── */
+  const ta = $("chat-text");
+  function autoGrow() { ta.style.height = "auto"; ta.style.height = Math.min(ta.scrollHeight, 160) + "px"; }
+  ta.addEventListener("input", autoGrow);
+  ta.addEventListener("keydown", e => {
+    if (e.key !== "Enter" || e.shiftKey) return;
+    if (e.isComposing || e.keyCode === 229) return;
+    e.preventDefault();
+    send();
+  });
+  $("send-btn").addEventListener("click", send);
+
+  async function send() {
+    if (sending || !current) return;
+    const text = ta.value;
+    if (!text.trim()) return;
+    sending = true;
+    $("send-btn").disabled = true;
+    $("chat-err").textContent = "";
+    try {
+      const args = current.roomId ? { p_body: text, p_room: current.roomId } : { p_body: text, p_to: current.to };
+      const { data, error } = await sb.rpc("talk_send", args);
+      if (error) { $("chat-err").textContent = sbErr(error) + " — 입력한 내용은 그대로 남겨 두었어요."; return; }
+      ta.value = "";
+      autoGrow();
+      if (!current.roomId) current = { roomId: data.room_id };
+      await refresh(true);
+    } catch (e) {
+      $("chat-err").textContent = "서버에 연결하지 못했습니다. 입력한 내용은 그대로 남겨 두었어요.";
+    } finally {
+      sending = false;
+      $("send-btn").disabled = false;
+      ta.focus();
+    }
+  }
+
+  /* ── 새로고침 ── */
+  async function refresh(scrollToEnd) {
+    const [roomsRes, staffRes] = await Promise.all([
+      sb.rpc("talk_my_rooms"),
+      sb.from("staff").select("id,name,role,center").eq("active", true).neq("role", "pending").neq("id", me.id),
+    ]);
+    if (roomsRes.error) {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) showLogin("로그인이 끝났습니다. 다시 로그인해 주세요.");
+      return;
+    }
+    const dmWith = {};
+    state.rooms = roomsRes.data.map(r => {
+      const members = r.members || [];
+      let name = r.name;
+      if (r.kind === "dm") {
+        const other = members.find(m => m.id !== me.id);
+        name = other ? other.name : "(나간 사람)";
+        if (other) dmWith[other.id] = r.id;
+      }
+      return { id: r.id, kind: KIND[r.kind] || r.kind, name, unread: r.unread, lastAt: ts(r.last_at), lastText: r.last_text || "", members };
+    });
+    state.people = (staffRes.data || []).map(p => Object.assign({}, p, { dmRoomId: dmWith[p.id] || "" }));
+    renderRooms();
+    renderPeople();
+    renderHead();
+    if (current && current.roomId) await loadMessages(scrollToEnd);
+  }
+  // 짧은 시간에 여러 알림이 와도 한 번만 새로 받는다
+  function scheduleRefresh() {
+    clearTimeout(refreshTimer);
+    refreshTimer = setTimeout(() => refresh(false), 300);
+  }
+
+  /* ── 실시간: 내가 멤버인 방의 메시지·읽음 변화만 데이터베이스가 보내 준다 (RLS) ── */
+  function startLive() {
+    stopLive();
+    channel = sb.channel("talk")
+      .on("postgres_changes", { event: "*", schema: "public", table: "talk_messages" }, scheduleRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "talk_members" }, scheduleRefresh)
+      .subscribe();
+    fallbackTimer = setInterval(() => { if (!document.hidden) refresh(false); }, FALLBACK_MS);
+  }
+  function stopLive() {
+    if (channel) { sb.removeChannel(channel); channel = null; }
+    if (fallbackTimer) { clearInterval(fallbackTimer); fallbackTimer = null; }
+  }
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && me) refresh(false); });
+
+  /* ── 웹앱: 서비스 워커 등록 (단톡 화면 파일만 다룸, sw.js 참고) ── */
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+  // 공개 사이트에는 ERP 지도가 없으므로 링크를 숨긴다
+  if (location.hostname.endsWith("github.io")) document.querySelectorAll(".erp-link").forEach(a => a.style.display = "none");
+
+  /* ── 시작 ── */
+  if (!window.sb) { document.body.insertAdjacentHTML("beforeend", `<p style="padding:40px; text-align:center;">서버 연결 스크립트를 불러오지 못했습니다.</p>`); return; }
+  enter();
+})();
+</script>
+</body>
+</html>

@@ -113,7 +113,7 @@
 
   function renderList() {
     document.getElementById("sg-list").innerHTML = allSuggestions.map(s => `
-      <a class="notice-row" href="javascript:void(0)" onclick="showDetail(${s.id})">
+      <a class="notice-row" href="javascript:void(0)" onclick="showDetail('${s.id}')">
         ${statusPill(s)}
         <span class="notice-title">${s.title}</span>
         <span class="notice-date">${s.name ? s.name + " · " : ""}${s.date}</span>
@@ -128,7 +128,7 @@
   }
 
   function showDetail(id) {
-    const s = allSuggestions.find(x => x.id === id);
+    const s = allSuggestions.find(x => String(x.id) === String(id));
     if (!s) return showList();
     document.getElementById("d-status").textContent = s.isPublic ? (s.answered ? "답변완료" : "답변대기") : "비공개";
     document.getElementById("d-title").textContent = s.title;
@@ -173,9 +173,10 @@
       submittedAt: new Date().toISOString(),
     };
     const result = await Api.submitSuggestion(payload);
+    if (!result.ok) { alert(result.message || "등록하지 못했습니다. 잠시 후 다시 시도해 주세요."); return; }
 
     allSuggestions.unshift({
-      id: (allSuggestions[0]?.id || 0) + 1,
+      id: "new-" + Date.now(),
       date: new Date().toISOString().slice(0, 10),
       isPublic,
       status: "접수",
@@ -203,7 +204,7 @@
       renderList();
 
       const params = new URLSearchParams(location.search);
-      const id = Number(params.get("id"));
+      const id = params.get("id");
       if (id) showDetail(id);
     });
   });

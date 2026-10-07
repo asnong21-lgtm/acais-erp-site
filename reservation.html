@@ -111,6 +111,7 @@ document.addEventListener("DOMContentLoaded", () => {
       submittedAt: new Date().toISOString(),
     };
     const result = await Api.submitReservation(payload);
+    if (!result.ok) { alert(result.message || "신청하지 못했습니다. 잠시 후 다시 시도해 주세요."); return; }
     const alertBox = document.getElementById("ok-alert");
     alertBox.style.display = "block";
     alertBox.textContent = "신청이 접수되었습니다. " + (result.message || "");
