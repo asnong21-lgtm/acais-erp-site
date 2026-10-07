@@ -261,9 +261,7 @@
     if (!d.canDraft) {
       $("new-form-panel").style.display = "none";
       $("new-blocked").style.display = "block";
-      $("new-blocked-text").innerHTML = d.me.role === "owner"
-        ? "<b>단장은 기안하지 않습니다.</b> 결재해 줄 사람이 없기 때문입니다. 「내 차례」에서 승인하시면 됩니다.<br>직원 입장으로 올려 보려면 다른 탭에서 직원 계정으로 로그인하세요."
-        : "<b>소속 부서가 없어 기안할 수 없습니다.</b> 운영관리자 › 직원 권한 관리에서 소속 센터를 정해 달라고 사무국에 요청하세요.";
+      $("new-blocked-text").innerHTML = "<b>소속 부서가 없어 기안할 수 없습니다.</b> 운영관리자 › 직원 권한 관리에서 소속 센터를 정해 달라고 사무국에 요청하세요.";
     } else {
       $("new-form-panel").style.display = "block";
       $("new-blocked").style.display = "none";
@@ -293,7 +291,7 @@
     $("mine-body").innerHTML = d.mine.length ? d.mine.map(v => `<tr>
         <td>${esc(v.docNo)}</td><td>${esc(v.typeLabel)}</td><td>${period(v)}</td><td>${esc(v.reason)}</td>
         <td>${stageTag(v)}</td><td>${trail(v)}</td>
-        <td>${v.canWithdraw ? `<button class="mini-btn" data-withdraw="${esc(v.docNo)}">회수</button>` : ""}</td>
+        <td>${v.canWithdraw ? `<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.selfConfirmed ? 1 : ""}">${v.selfConfirmed ? "취소" : "회수"}</button>` : ""}</td>
       </tr>`).join("")
       : `<tr><td class="empty-row" colspan="7">${d.canDraft ? "아직 올린 문서가 없습니다. 「새로 올리기」에서 시작하세요." : "올린 문서가 없습니다."}</td></tr>`;
 
@@ -406,6 +404,11 @@
     if (!data || !data.canDraft) return;
     const type = $("f-type").value || "leave";
     const line = data.lines.find(l => l.deptCode === data.me.dept) || {};
+    if (data.me.role === "owner") {
+      // 단장도 직원 구성원 — 위 결재자가 없어 올리는 즉시 확정(기록용)되고, 근태·연차에 바로 반영된다
+      $("route-box").innerHTML = `결재 경로 · ${esc(data.me.name)} → 즉시 확정<small>단장 본인 문서는 위 결재자가 없어 올리는 즉시 「승인」으로 기록되고 근태·연차에 바로 반영됩니다. 잘못 올렸으면 「내 신청」에서 취소할 수 있습니다.</small>`;
+      return;
+    }
     let note = data.route === "단장" ? "부서장 단계 없이 단장이 바로 승인합니다." : "부서장이 먼저, 그다음 단장이 승인합니다.";
     if (data.route !== "단장" && type !== "expense" && line.leaveDelegate) note = "근태 전결: 부서장이 승인하면 바로 끝납니다.";
     if (data.route !== "단장" && type === "expense") note += line.expenseLimit
@@ -465,7 +468,9 @@
       } catch (err) { box.className = "msg err"; box.textContent = "서버에 연결하지 못했습니다."; t.disabled = false; }
     }
     if (t.dataset.withdraw) {
-      if (!confirm(t.dataset.withdraw + " 문서를 회수할까요? 회수한 문서는 다시 결재되지 않습니다.")) return;
+      if (!confirm(t.dataset.self
+        ? t.dataset.withdraw + " 문서를 취소할까요? 근태·연차에서 빠지고 기록은 「회수」로 남습니다."
+        : t.dataset.withdraw + " 문서를 회수할까요? 회수한 문서는 다시 결재되지 않습니다.")) return;
       t.disabled = true;
       const r = await rpc("apv_withdraw", { p_doc_no: t.dataset.withdraw });
       if (!r.ok) alert(r.message);
