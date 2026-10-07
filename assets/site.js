@@ -102,7 +102,7 @@ function renderFooter() {
         </div>
       </div>
       <div>
-        ${CONFIG.orgName} · 경기도 안성시 시청길 25(봉산동) · 대표전화 031-678-2114<br>
+        ${CONFIG.orgName} · 경기도 안성시 고수2로 17 · 대표전화 031-678-0782<br>
         Copyright &copy; ${CONFIG.orgName}. All rights reserved.
       </div>
     </div>
