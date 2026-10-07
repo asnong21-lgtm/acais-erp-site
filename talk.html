@@ -44,6 +44,9 @@
   .room-bottom{ display:flex; justify-content:space-between; gap:6px; margin-top:3px; }
   .room-prev{ font-size:12px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .badge-n{ background:#e5484d; color:#fff; font-size:11px; font-weight:700; border-radius:10px; padding:1px 7px; flex:0 0 auto; }
+  .apv-link{ color:#fff; font-size:12.5px; font-weight:700; margin-left:14px; background:rgba(255,255,255,.14); padding:3px 10px; border-radius:12px; text-decoration:none; white-space:nowrap; }
+  .room-ico.notice{ background:#fff4c2; color:#8a6d00; }
+  .notice-open{ display:inline-block; margin-top:8px; border:1px solid #e0c200; background:#fff; color:#6b5400; font:inherit; font-size:12.5px; font-weight:700; border-radius:14px; padding:4px 12px; cursor:pointer; }
   .keep-rule{ margin:18px 16px 16px; padding:10px 12px; border-radius:8px; background:#f4f6f9; color:var(--sub); font-size:11.5px; line-height:1.6; }
   .person-sub{ font-size:11.5px; color:var(--sub); }
 
@@ -106,6 +109,7 @@
 <header class="admin-header talk-header">
   <div class="wrap">
     <div class="logo" style="color:#fff; white-space:nowrap;">💬 단톡 <span class="talk-sub" style="font-size:12px; font-weight:500; color:#cfe0ee;">시민활동통합지원단 사내 메신저</span>
+      <a href="approval.html" class="apv-link">📝 전자결재</a>
       <a href="admin.html" style="color:#cfe0ee; font-size:12px; font-weight:500; margin-left:14px; text-decoration:underline;">운영관리자</a>
       <a href="../erp-map.html" class="erp-link" style="color:#cfe0ee; font-size:12px; font-weight:500; margin-left:10px; text-decoration:underline;">← ERP 지도</a>
       <a href="admin.html#me" style="color:#cfe0ee; font-size:12px; font-weight:500; margin-left:10px; text-decoration:underline;">비밀번호 변경</a>
@@ -242,9 +246,9 @@
     const dms = state.rooms.filter(r => r.kind === "1:1").sort((a, b) => b.lastAt - a.lastAt);
     const item = r => `
       <div class="room-item ${current && current.roomId === r.id ? "active" : ""}" data-room="${esc(r.id)}">
-        <div class="room-ico ${r.kind === "1:1" ? "" : "group"}">${r.kind === "1:1" ? esc(r.name.slice(0, 1)) : "👥"}</div>
+        <div class="room-ico ${r.kind === "1:1" ? "" : r.kind === "알림" ? "notice" : "group"}">${r.kind === "1:1" ? esc(r.name.slice(0, 1)) : r.kind === "알림" ? "📝" : "👥"}</div>
         <div class="room-body">
-          <div class="room-top"><div class="room-name">${esc(r.name)}${r.kind !== "1:1" ? ` <span style="color:var(--sub); font-weight:500; font-size:11.5px;">${r.members.length}</span>` : ""}</div><div class="room-time">${shortTime(r.lastAt)}</div></div>
+          <div class="room-top"><div class="room-name">${esc(r.name)}${r.kind === "단체" ? ` <span style="color:var(--sub); font-weight:500; font-size:11.5px;">${r.members.length}</span>` : ""}</div><div class="room-time">${shortTime(r.lastAt)}</div></div>
           <div class="room-bottom"><div class="room-prev">${esc(r.lastText.split("\n")[0]) || "&nbsp;"}</div>${r.unread ? `<span class="badge-n">${r.unread > 99 ? "99+" : r.unread}</span>` : ""}</div>
         </div>
       </div>`;
@@ -260,6 +264,7 @@
     try { if (total && navigator.setAppBadge) navigator.setAppBadge(total); else if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch (e) {}
   }
   function order(r) {
+    if (r.kind === "알림") return -1;
     const i = ["room_all", "room_office", "room_public", "room_village", "room_social", "room_rural", "room_regen"].indexOf(r.id);
     return i < 0 ? 100 : i;
   }
@@ -308,7 +313,9 @@
     const r = state.rooms.find(x => x.id === current.roomId);
     if (!r) return;
     $("chat-title").textContent = r.name;
-    $("chat-members").textContent = r.kind === "1:1" ? "1:1 대화" : "단체방 · 멤버 " + r.members.length + "명: " + r.members.map(m => m.name).join(", ");
+    $("chat-members").textContent = r.kind === "1:1" ? "1:1 대화"
+      : r.kind === "알림" ? "읽기 전용 · 전자결재 소식(내 차례, 승인·반려)이 여기로 옵니다"
+      : "단체방 · 멤버 " + r.members.length + "명: " + r.members.map(m => m.name).join(", ");
     $("chat-input-wrap").style.display = r.kind === "알림" ? "none" : "block";
   }
 
@@ -316,7 +323,7 @@
     if (!current || !current.roomId) return;
     const roomId = current.roomId;
     const [msgRes, memRes] = await Promise.all([
-      sb.from("talk_messages").select("id,sender_id,body,created_at,deleted_at,file_path,file_name,file_size,file_type")
+      sb.from("talk_messages").select("id,sender_id,body,created_at,deleted_at,file_path,file_name,file_size,file_type,link")
         .eq("room_id", roomId).order("created_at", { ascending: false }).limit(200),
       sb.from("talk_members").select("user_id,last_read_at").eq("room_id", roomId),
     ]);
@@ -331,7 +338,7 @@
       const at = ts(m.created_at), mine = m.sender_id === me.id, deleted = !!m.deleted_at;
       return {
         id: m.id, from: m.sender_id || "", fromName: m.sender_id ? (names[m.sender_id] || "(나간 사람)") : "알림",
-        text: m.body, at, deleted, mine,
+        text: m.body, at, deleted, mine, link: m.link || "",
         file: m.file_path ? { path: m.file_path, name: m.file_name || "파일", size: m.file_size || 0, type: m.file_type || "", image: /^image\//.test(m.file_type || "") } : null,
         // 내가 보냈고, 아직 아무도 안 읽었을 때만 (최종 판단은 서버가 다시 한다)
         canDelete: mine && !deleted && others.every(o => ts(o.last_read_at) < at),
@@ -341,7 +348,9 @@
     const body = $("chat-body");
     const nearEnd = body.scrollHeight - body.scrollTop - body.clientHeight < 80;
     let html = "", lastDay = "";
-    if (!msgs.length) html = `<div class="chat-empty">아직 메시지가 없습니다. 첫 인사를 남겨 보세요.</div>`;
+    if (!msgs.length) html = room && room.kind === "알림"
+      ? `<div class="chat-empty">아직 받은 결재 알림이 없습니다.<br>결재 차례가 되거나 올린 문서가 승인·반려되면 여기로 알려 드려요.</div>`
+      : `<div class="chat-empty">아직 메시지가 없습니다. 첫 인사를 남겨 보세요.</div>`;
     msgs.forEach((m, i) => {
       const dk = dayKey(m.at);
       if (dk !== lastDay) { html += `<div class="day-div"><span>${dayLabel(m.at)}</span></div>`; lastDay = dk; }
@@ -351,13 +360,17 @@
       html += `<div class="msg ${cls}">
         ${showWho ? `<div class="who">${esc(m.fromName)}</div>` : ""}
         <div class="row">
-          <div class="bubble ${m.deleted ? "deleted" : ""} ${m.file && m.file.image && !m.text ? "photo" : ""}">${m.deleted ? "삭제된 메시지입니다" : attachHtml(m.file) + (m.text ? (m.file ? `<div class="att-caption">${esc(m.text)}</div>` : esc(m.text)) : "")}</div>
+          <div class="bubble ${m.deleted ? "deleted" : ""} ${m.file && m.file.image && !m.text ? "photo" : ""}">${m.deleted ? "삭제된 메시지입니다" : attachHtml(m.file) + (m.text ? (m.file ? `<div class="att-caption">${esc(m.text)}</div>` : esc(m.text)) : "") + (m.link && !m.deleted ? `<div><button class="notice-open" data-link="${esc(m.link)}">📝 문서 열기 →</button></div>` : "")}</div>
           <div class="meta">${m.canDelete ? `<button class="del-btn" data-del="${esc(m.id)}">지우기</button>` : ""}<span>${hm(m.at)}</span></div>
         </div>
       </div>`;
     });
     body.innerHTML = html;
     body.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => deleteMsg(b.dataset.del)));
+    body.querySelectorAll("[data-link]").forEach(el => el.addEventListener("click", () => {
+      const u = el.dataset.link;
+      if (/^[a-z_]+\.html(\?[A-Za-z0-9_=&%.\-]*)?$/.test(u)) location.href = u;   // 같은 사이트 안의 화면만
+    }));
     body.querySelectorAll("[data-open]").forEach(el => el.addEventListener("click", () => openFile(el.dataset.open, el.dataset.name, el.dataset.dl === "1")));
     fillImages(body);
     if (scrollToEnd || nearEnd) body.scrollTop = body.scrollHeight;

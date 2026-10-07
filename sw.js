@@ -3,7 +3,7 @@
  * - 단톡 화면 파일만 다룬다(아래 TALK_FILES). 다른 페이지(운영관리자·전자결재 등)와 Supabase·CDN 요청은 건드리지 않는다.
  * - 항상 네트워크를 먼저 쓰고(고친 내용이 바로 반영되게), 연결이 끊겼을 때만 마지막으로 받은 화면을 보여준다.
  */
-const CACHE = "talk-shell-v2";
+const CACHE = "talk-shell-v3";
 const TALK_FILES = [
   "talk.html", "talk.webmanifest",
   "assets/style.css", "assets/site.js", "assets/sb.js",
@@ -36,7 +36,8 @@ self.addEventListener("push", e => {
       badge: "assets/icons/talk-192.png",
       tag: "talk-" + (d.room || "all"),
       renotify: true,
-      data: { url: "talk.html?room=" + encodeURIComponent(d.room || "") },
+      // 결재 알림처럼 연결 화면(url)이 있으면 그 화면을, 없으면 그 대화방을 연다
+      data: { url: d.url || ("talk.html?room=" + encodeURIComponent(d.room || "")) },
     });
   })());
 });
@@ -45,8 +46,13 @@ self.addEventListener("notificationclick", e => {
   const url = new URL(e.notification.data && e.notification.data.url || "talk.html", self.registration.scope).href;
   e.waitUntil((async () => {
     const wins = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
-    const w = wins.find(c => /talk\.html/.test(c.url));
-    if (w) { await w.focus(); w.postMessage({ type: "open-room", url }); return; }
+    if (/talk\.html/.test(url)) {
+      const w = wins.find(c => /talk\.html/.test(c.url));
+      if (w) { await w.focus(); w.postMessage({ type: "open-room", url }); return; }
+    } else if (wins.length && wins[0].navigate) {
+      // 열려 있는 단톡·전자결재 창을 그 화면으로 옮긴다
+      try { const w = await wins[0].focus(); await (w || wins[0]).navigate(url); return; } catch (err) { /* 아래에서 새 창 */ }
+    }
     await self.clients.openWindow(url);
   })());
 });
