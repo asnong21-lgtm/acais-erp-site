@@ -66,6 +66,55 @@
   </div>
 </section>
 
+<section class="block" id="inquiry" style="background:#fff;border-top:1px solid var(--line);">
+  <div class="wrap">
+    <div class="block-head">
+      <h2><span class="dot"></span>문의하기</h2>
+      <span class="more-link">전화 문의 031-678-0782</span>
+    </div>
+    <div class="panel" style="max-width:760px; margin:0 auto;">
+      <div class="alert alert-ok" id="inq-ok" role="status" style="display:none;"></div>
+      <div class="alert" id="inq-err" role="alert" style="display:none; background:#fdecec; color:#b42318;"></div>
+      <form id="inq-form" novalidate>
+        <div class="form-row"><label for="inq-name">이름 <span class="req">*</span></label>
+          <input type="text" id="inq-name" maxlength="40" autocomplete="name" required></div>
+        <div class="form-row"><label for="inq-phone">연락처 <span class="req">*</span></label>
+          <div><input type="tel" id="inq-phone" inputmode="numeric" maxlength="20" autocomplete="tel" placeholder="예: 010-1234-5678" required>
+          <div class="hint">숫자 9~11자리로 적어 주세요. 하이픈(-)은 자동으로 정리됩니다.</div></div></div>
+        <div class="form-row"><label for="inq-product">관심 서비스</label>
+          <select id="inq-product">
+            <option value="">선택 안 함</option>
+            <option>시민동아리</option>
+            <option>사회연대경제 창업교육</option>
+            <option>농촌크리에이투어</option>
+            <option>공간대관</option>
+            <option>기타</option>
+          </select></div>
+        <div class="form-row"><label for="inq-message">문의 내용</label>
+          <div><textarea id="inq-message" maxlength="1000" placeholder="궁금한 점을 적어 주세요."></textarea>
+          <div class="hint">1,000자까지 적을 수 있습니다.</div></div></div>
+        <div class="form-row" id="inq-source-row"><label for="inq-source">어디서 알고 오셨나요 <span class="req">*</span></label>
+          <select id="inq-source">
+            <option value="">선택해 주세요</option>
+            <option value="search">검색</option>
+            <option value="map">지도</option>
+            <option value="referral">지인 소개</option>
+            <option value="sns">SNS</option>
+            <option value="phone">전화</option>
+            <option value="other">기타</option>
+            <option value="unknown">모르겠음</option>
+          </select></div>
+        <div class="form-row"><label>개인정보 동의 <span class="req">*</span></label>
+          <div><label style="font-weight:500; display:flex; gap:8px; align-items:flex-start; padding-top:0; line-height:1.6;">
+            <input type="checkbox" id="inq-consent" style="margin-top:5px;">
+            <span id="inq-consent-text"></span></label></div></div>
+        <div class="form-actions"><button type="submit" class="btn btn-primary" id="inq-submit">문의 보내기</button></div>
+        <div class="hint" id="inq-tag" style="text-align:center; display:none;"></div>
+      </form>
+    </div>
+  </div>
+</section>
+
 <div id="site-footer-mount"></div>
 
 <script src="assets/site.js"></script><script>
@@ -94,6 +143,81 @@
       `).join("");
     });
   });
+
+  /* ── 문의하기: 문의를 Supabase(acais-inquiry)의 inquiries 표에 넣는다 ──
+   * 방문자는 「넣기」만 가능하고 읽을 수 없다(보안 규칙). 저장한 줄을 되돌려 읽지 않는다. */
+  (function () {
+    const $ = id => document.getElementById(id);
+    const SOURCE_LABEL = { search: "검색", map: "지도", referral: "지인 소개", sns: "SNS", phone: "전화", other: "기타", unknown: "모르겠음" };
+    // 링크 꼬리표(?from=...)로 경로가 정해지는 값 (unknown 은 사람이 고르는 값이라 꼬리표로는 받지 않는다)
+    const TAGGED = ["search", "map", "referral", "sns", "phone", "other"];
+
+    // 동의 문구 (초안) — [보관 기간 확인필요] 는 회사가 보관 기간을 정한 뒤 바꿔야 합니다.
+    // 이 글자가 남아 있는 동안에는 실제 시민에게 주소를 알리지 마세요.
+    $("inq-consent-text").textContent = "문의 응대를 위해 이름·연락처·문의 내용을 수집하며 [보관 기간 확인필요]까지 보관합니다.";
+
+    const tag = new URLSearchParams(location.search).get("from");
+    const tagged = TAGGED.includes(tag) ? tag : null;
+    if (tagged) {
+      $("inq-source-row").style.display = "none";
+      $("inq-tag").style.display = "block";
+      $("inq-tag").textContent = "링크 꼬리표로 입력됨: " + SOURCE_LABEL[tagged];
+    }
+
+    const show = (ok, err) => {
+      $("inq-ok").style.display = ok ? "block" : "none";
+      $("inq-ok").textContent = ok || "";
+      $("inq-err").style.display = err ? "block" : "none";
+      $("inq-err").textContent = err || "";
+      if (ok || err) (ok ? $("inq-ok") : $("inq-err")).scrollIntoView({ behavior: "smooth", block: "center" });
+    };
+
+    $("inq-form").addEventListener("submit", async e => {
+      e.preventDefault();
+      show("", "");
+      const name = $("inq-name").value.trim();
+      const phone = $("inq-phone").value.replace(/\D/g, "");       // 숫자만 남긴다
+      const source = tagged || $("inq-source").value;
+      if (!name) return show("", "이름을 적어 주세요.");
+      if (!/^[0-9]{9,11}$/.test(phone)) return show("", "연락처는 숫자 9~11자리로 적어 주세요. (예: 010-1234-5678)");
+      if (!source) return show("", "「어디서 알고 오셨나요」를 선택해 주세요.");
+      if (!$("inq-consent").checked) return show("", "개인정보 수집·이용에 동의하셔야 문의를 보낼 수 있습니다.");
+      if (!CONFIG.INQUIRY_URL || !CONFIG.INQUIRY_KEY) return show("", "문의 접수 연결이 아직 설정되지 않았습니다. 전화(031-678-0782)로 문의해 주세요.");
+
+      const btn = $("inq-submit");
+      btn.disabled = true; btn.textContent = "보내는 중...";
+      try {
+        const res = await fetch(CONFIG.INQUIRY_URL + "/rest/v1/inquiries", {
+          method: "POST",
+          headers: {
+            "apikey": CONFIG.INQUIRY_KEY,
+            "Authorization": "Bearer " + CONFIG.INQUIRY_KEY,
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal",
+          },
+          body: JSON.stringify({
+            name, phone,
+            product: $("inq-product").value || null,
+            message: $("inq-message").value.trim() || null,
+            source,
+            consent: true,
+          }),
+        });
+        if (res.status === 201) {
+          show("접수했습니다. 담당자가 확인 후 연락드리겠습니다.", "");
+          $("inq-form").reset();
+        } else {
+          let why = "";
+          try { why = (await res.json()).message || ""; } catch (x) {}
+          show("", "접수하지 못했습니다. (상태 " + res.status + (why ? " · " + why : "") + ") 잠시 뒤 다시 시도하거나 전화(031-678-0782)로 문의해 주세요.");
+        }
+      } catch (x) {
+        show("", "서버에 연결하지 못했습니다. 잠시 뒤 다시 시도하거나 전화(031-678-0782)로 문의해 주세요.");
+      } finally {
+        btn.disabled = false; btn.textContent = "문의 보내기";
+      }
+    });
+  })();
 </script>
 </body>
 </html>

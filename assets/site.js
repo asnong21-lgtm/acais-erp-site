@@ -16,6 +16,11 @@ const CONFIG = {
   // 공개용(publishable) 키라 홈페이지에 있어도 된다. 무엇을 읽고 쓸 수 있는지는 데이터베이스 규칙(RLS)이 정한다.
   SUPABASE_URL: "https://vwobpxyqsiynlybasnek.supabase.co",
   SUPABASE_KEY: "sb_publishable_eujFGfxRNaVQ3TKtg3iWMw_9OohMjZo",
+  // 홈페이지 「문의하기」가 문의를 저장하는 곳 (별도 Supabase 프로젝트 acais-inquiry — 기혁스 3기 5회차).
+  // 공개용(publishable) 키만 쓴다. service_role / secret 키는 절대 넣지 않는다.
+  // 방문자는 문의를 「넣기」만 할 수 있고 읽을 수 없다 (supabase/inquiry/001_inquiry.sql 의 보안 규칙).
+  INQUIRY_URL: "https://rpmxsuvbmlgxikrpapsj.supabase.co",
+  INQUIRY_KEY: "sb_publishable_cnQyL5EKvgpIMaM8oFKuTw_6zVYXkeC",
   useMock: false,
   orgName: "시민활동통합지원단",
   orgNameShort: "지원단",
