@@ -188,7 +188,7 @@
   if (!window.sb) { document.getElementById("unconfigured").style.display = "block"; return; }
 
   const ROLE_LABEL = { owner: "단장", office: "사무국", center: "센터담당자" };
-  const STAGE_CLASS = { "부서장 대기": "s-head", "단장 대기": "s-ceo", "승인": "s-ok", "반려": "s-no", "회수": "s-back" };
+  const STAGE_CLASS = { "부서장 대기": "s-head", "단장 대기": "s-ceo", "승인": "s-ok", "반려": "s-no", "회수": "s-back", "취소": "s-back" };
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -248,7 +248,7 @@
     if (v.headLine) out.push(`부서장 <b>${esc(v.headLine)}</b>`);
     if (v.ceoLine) out.push(`단장 <b>${esc(v.ceoLine)}</b>`);
     if (v.status === "반려" && v.rejectReason) out.push(`반려 사유 <b>${esc(v.rejectReason)}</b>`);
-    if (v.status === "회수") out.push(`회수 ${esc(v.closedAt)}`);
+    if (v.status === "회수") out.push(v.stageLabel === "취소" ? `승인 후 본인 취소 <b>${esc(v.closedAt)}</b>` : `회수 ${esc(v.closedAt)}`);
     return `<div class="line-step">${out.join("<br>") || "—"}</div>`;
   }
 
@@ -291,7 +291,7 @@
     $("mine-body").innerHTML = d.mine.length ? d.mine.map(v => `<tr>
         <td>${esc(v.docNo)}</td><td>${esc(v.typeLabel)}</td><td>${period(v)}</td><td>${esc(v.reason)}</td>
         <td>${stageTag(v)}</td><td>${trail(v)}</td>
-        <td>${v.canWithdraw ? `<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.selfConfirmed ? 1 : ""}">${v.selfConfirmed ? "취소" : "회수"}</button>` : ""}</td>
+        <td>${v.canWithdraw ? `<button class="mini-btn" data-withdraw="${esc(v.docNo)}" data-self="${v.status === "승인" ? 1 : ""}">${v.status === "승인" ? "취소" : "회수"}</button>` : ""}</td>
       </tr>`).join("")
       : `<tr><td class="empty-row" colspan="7">${d.canDraft ? "아직 올린 문서가 없습니다. 「새로 올리기」에서 시작하세요." : "올린 문서가 없습니다."}</td></tr>`;
 
@@ -341,7 +341,7 @@
     $("tab-btn-all").style.display = d.all ? "inline-block" : "none";
     if (d.all) {
       const n = s => d.all.filter(v => v.status === s).length;
-      $("all-sum").innerHTML = [["진행중", "대기"], ["승인", "승인"], ["반려", "반려"], ["회수", "회수"]]
+      $("all-sum").innerHTML = [["진행중", "대기"], ["승인", "승인"], ["반려", "반려"], ["회수", "회수·취소"]]
         .map(([s, label]) => `<div class="sum"><b>${n(s)}</b>${label}</div>`).join("");
       $("all-body").innerHTML = d.all.length ? d.all.map(v => `<tr>
           <td>${esc(v.docNo)}</td><td>${esc(v.typeLabel)}</td><td>${esc(v.drafterName)}<div class="who-dept">${esc(v.deptName)}</div></td>
@@ -469,7 +469,7 @@
     }
     if (t.dataset.withdraw) {
       if (!confirm(t.dataset.self
-        ? t.dataset.withdraw + " 문서를 취소할까요? 근태·연차에서 빠지고 기록은 「회수」로 남습니다."
+        ? t.dataset.withdraw + " 문서는 이미 승인됐습니다. 취소할까요?\n근태·연차에서 바로 빠지고, 결재자도 볼 수 있게 「승인 후 본인 취소」로 기록이 남습니다."
         : t.dataset.withdraw + " 문서를 회수할까요? 회수한 문서는 다시 결재되지 않습니다.")) return;
       t.disabled = true;
       const r = await rpc("apv_withdraw", { p_doc_no: t.dataset.withdraw });
