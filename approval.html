@@ -457,9 +457,27 @@
   const clip = v => (v.files && v.files.length ? `<span class="clip">📎${v.files.length}</span>` : "") +
     (v.edits && v.edits.length ? `<span class="clip" title="수정 이력 ${v.edits.length}건">✏️${v.editedByOthers ? "결재자 수정" : "수정"}</span>` : "");
   const fmtSize = n => n >= 1048576 ? (n / 1048576).toFixed(1) + "MB" : Math.max(1, Math.round(n / 1024)) + "KB";
+  // 목록(내 차례·내 신청·전체)에 없지만 볼 권한이 있는 문서(예: 내가 이미 승인한 문서를 알림 링크로 열 때)
+  const extraDocs = {};
   function findDoc(no) {
     if (!data) return null;
-    return [].concat(data.myTurn || [], data.mine || [], data.all || []).find(v => v.docNo === no) || null;
+    return [].concat(data.myTurn || [], data.mine || [], data.all || []).find(v => v.docNo === no) || extraDocs[no] || null;
+  }
+  async function fetchExtra(no) {
+    const r = await rpc("apv_get", { p_doc_no: no });
+    if (r && r.ok) { extraDocs[no] = r.doc; return true; }
+    return r ? r.message : "문서를 불러오지 못했습니다.";
+  }
+  // 단톡 「결재 알림」·휴대폰 알림의 링크(approval.html?doc=문서번호)로 들어오면 그 문서를 바로 연다
+  async function openFromLink() {
+    const want = new URLSearchParams(location.search).get("doc");
+    if (!want) return;
+    try { history.replaceState(null, "", location.pathname + location.hash); } catch (e) {}
+    if (!findDoc(want)) {
+      const got = await fetchExtra(want);
+      if (got !== true) { alert(`${want}: ${got}`); return; }
+    }
+    openDoc(want);
   }
   function docFields(v) {
     const rows = [["문서 종류", v.typeLabel + (v.category ? ` · ${v.category}` : "")], ["기안자", `${v.drafterName} (${v.deptName})`], ["기안일", v.draftedAt]];
@@ -620,6 +638,9 @@
       alert(msg); return;
     }
     data = r;
+    // 목록 밖 문서를 열어 둔 상태면 그 문서도 새로 읽는다
+    const inLists = no => [].concat(data.myTurn || [], data.mine || [], data.all || []).some(v => v.docNo === no);
+    if (openDocNo && extraDocs[openDocNo] && !inLists(openDocNo)) await fetchExtra(openDocNo);
     render();
   }
 
@@ -833,6 +854,7 @@
     const h = location.hash.replace("#", "");
     const valid = ["new", "turn", "mine", "leave", "lines"].concat(data.all ? ["all"] : []);
     openTab(valid.indexOf(h) >= 0 ? h : (data.myTurn.length ? "turn" : data.canDraft ? "new" : "mine"));
+    await openFromLink();
     // 다른 사람이 올리거나 결재하면 바로 다시 읽는다(Supabase 실시간 — 내가 볼 수 있는 문서만 RLS 로 걸러서 온다).
     // 실시간이 끊겨도 60초마다 한 번은 다시 읽는다. 입력 중에는 화면을 갈아엎지 않는다.
     const quietRefresh = () => {
