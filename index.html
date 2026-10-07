@@ -152,9 +152,9 @@
     // 링크 꼬리표(?from=...)로 경로가 정해지는 값 (unknown 은 사람이 고르는 값이라 꼬리표로는 받지 않는다)
     const TAGGED = ["search", "map", "referral", "sns", "phone", "other"];
 
-    // 동의 문구 (초안) — [보관 기간 확인필요] 는 회사가 보관 기간을 정한 뒤 바꿔야 합니다.
-    // 이 글자가 남아 있는 동안에는 실제 시민에게 주소를 알리지 마세요.
-    $("inq-consent-text").textContent = "문의 응대를 위해 이름·연락처·문의 내용을 수집하며 [보관 기간 확인필요]까지 보관합니다.";
+    // 동의 문구 — 보관 기간 1년 (2026-10-08 대표님 결정). 1년이 지난 문의는 서버가 매일 자동으로 지웁니다.
+    // 기간을 바꾸려면 이 문구와 supabase/inquiry/002_retention.sql 의 기간을 함께 바꿔야 합니다.
+    $("inq-consent-text").textContent = "문의 응대를 위해 이름·연락처·문의 내용을 수집하며 접수일로부터 1년간 보관한 뒤 삭제합니다.";
 
     const tag = new URLSearchParams(location.search).get("from");
     const tagged = TAGGED.includes(tag) ? tag : null;
