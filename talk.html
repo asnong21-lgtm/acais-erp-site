@@ -44,6 +44,7 @@
   .room-bottom{ display:flex; justify-content:space-between; gap:6px; margin-top:3px; }
   .room-prev{ font-size:12px; color:var(--sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .badge-n{ background:#e5484d; color:#fff; font-size:11px; font-weight:700; border-radius:10px; padding:1px 7px; flex:0 0 auto; }
+  .keep-rule{ margin:18px 16px 16px; padding:10px 12px; border-radius:8px; background:#f4f6f9; color:var(--sub); font-size:11.5px; line-height:1.6; }
   .person-sub{ font-size:11.5px; color:var(--sub); }
 
   .talk-main{ flex:1; display:flex; flex-direction:column; min-width:0; min-height:0; }
@@ -249,7 +250,8 @@
       </div>`;
     $("side-rooms").innerHTML =
       `<div class="talk-sec">단체방</div>` + (groups.map(item).join("") || `<div class="talk-sec" style="font-weight:500;">없음</div>`) +
-      `<div class="talk-sec">1:1 대화</div>` + (dms.map(item).join("") || `<div class="talk-sec" style="font-weight:500;">아직 없습니다. 「대화 시작」에서 동료를 고르세요.</div>`);
+      `<div class="talk-sec">1:1 대화</div>` + (dms.map(item).join("") || `<div class="talk-sec" style="font-weight:500;">아직 없습니다. 「대화 시작」에서 동료를 고르세요.</div>`) +
+      `<div class="keep-rule">🗂️ 보관 규정 · 메시지와 사진·파일은 보낸 날부터 <b>180일</b> 보관한 뒤 자동으로 지워집니다. 오래 남겨야 할 자료는 따로 저장해 두세요.</div>`;
     $("side-rooms").querySelectorAll("[data-room]").forEach(el => el.addEventListener("click", () => openRoom({ roomId: el.dataset.room })));
 
     const total = state.rooms.reduce((s, r) => s + (r.unread || 0), 0);
