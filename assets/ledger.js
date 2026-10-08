@@ -1,7 +1,7 @@
 /*
- * 문의 대장 · 고객 대장 (연습용) — 기혁스 3기 5회차 ⑤. 운영관리자 화면(admin.html)의 「문의 대장」「고객 대장」 탭에서 쓴다.
+ * 문의 대장 · 고객 대장 (연습용) — 기혁스 3기 5회차 ⑤. 운영관리자 화면(admin.html)의 「문의 대장」「고객 대장」 탭과 ERP 지도(erp-map.html)의 대장 화면이 같이 쓴다.
  *
- * · 이 컴퓨터에서 열 때만 동작한다(file:// 또는 localhost). 공개 주소(github.io·pages.dev)에서는 탭을 숨긴다.
+ * · 이 컴퓨터에서 열 때만 동작한다(file:// 또는 localhost). 공개 주소(github.io·pages.dev)에서는 탭과 화면을 지운다.
  *   — 연습용이라 실제 시민 정보를 넣으면 안 되고, 직원이 함께 보는 대장은 6회차에 Supabase로 만든다.
  * · 저장은 이 컴퓨터 브라우저의 localStorage 뿐이다(서버로 가지 않음). 키: company_inquiries_v1
  * · 응대 단계와 계약 결과는 서로 다른 칸이다. 계약 결과가 비어 있으면 「미입력」 배지가 붙는다.
@@ -19,6 +19,62 @@
     return;
   }
   tabBtns.forEach(b => { b.style.display = ""; });
+
+
+  /* ── 화면 틀 — 운영관리자 탭(#tab-inq, #tab-cust)과 ERP 지도의 대장 화면이 같은 틀을 쓴다 ── */
+  const INQ_HTML = `
+    <div class="lg-practice">
+      <b>연습용 화면입니다.</b> 실제 시민의 이름·연락처를 넣지 마세요. <b>가상 이름·가상 번호만</b> 적습니다(예: 가상홍길동 / 010-0000-0001).
+      저장되는 곳은 <b>이 컴퓨터의 브라우저(localStorage)뿐</b>이고 서버로 가지 않습니다. 실제 홈페이지 문의는 Supabase에 쌓이고, 직원이 함께 보는 대장은 6회차에 만듭니다.
+    </div>
+    <div class="lg-summary"></div>
+    <section class="lg-panel">
+      <h2>새 문의 넣기</h2>
+      <form id="lg-form" class="lg-form" novalidate>
+        <div><label for="lg-date">접수일 <span class="req">*</span></label><input type="date" id="lg-date" required></div>
+        <div><label for="lg-name">이름 <span class="req">*</span></label><input type="text" id="lg-name" maxlength="40" placeholder="예: 가상홍길동" autocomplete="off" required></div>
+        <div><label for="lg-phone">연락처 <span class="req">*</span></label><input type="tel" id="lg-phone" inputmode="numeric" maxlength="20" placeholder="예: 010-0000-0001" autocomplete="off" required>
+          <div class="lg-hint">숫자 9~11자리 (하이픈은 자동 정리) · 같은 연락처면 같은 고객입니다</div></div>
+        <div><label for="lg-product">관심 서비스</label><select id="lg-product"><option value="">선택 안 함</option></select></div>
+        <div><label for="lg-source">경로 — 어디서 알고 오셨나요 <span class="req">*</span></label><select id="lg-source"><option value="">선택해 주세요</option></select></div>
+        <div><button type="submit" class="lg-btn">접수 저장</button></div>
+        <div class="lg-msg note" id="lg-msg" role="status">응대 단계는 「접수」로, 계약 결과는 비어 있는 채로 시작합니다. 아래 표에서 바꿉니다.</div>
+      </form>
+    </section>
+    <section class="lg-panel">
+      <h2 style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">문의 대장
+        <button class="lg-clear" id="lg-clear" type="button">연습 데이터 모두 지우기</button></h2>
+      <div class="lg-wrap">
+        <table>
+          <thead><tr><th>접수일</th><th>이름</th><th>연락처</th><th>관심 서비스</th><th>경로</th><th>응대 단계</th><th>계약 결과</th><th></th></tr></thead>
+          <tbody id="lg-rows"></tbody>
+        </table>
+      </div>
+      <div class="lg-hint" style="margin-top:10px;">응대 단계(접수·연락중·상담완료)와 계약 결과(계약·보류·실패)는 <b>서로 다른 칸</b>입니다. 상담이 끝났다고 계약이 된 것은 아닙니다. 계약 결과가 비어 있으면 「미입력」으로 보입니다. 이름 아래의 「고객 C-0001 · Q-0001」은 이 문의가 어느 고객의 몇 번째 접수번호인지입니다.</div>
+    </section>`;
+  const CUST_HTML = `
+    <div class="lg-practice">
+      <b>연습용 화면입니다.</b> 문의 대장에 넣은 가상 문의가 연락처로 묶여 여기에 나타납니다. 이 컴퓨터의 브라우저에만 저장됩니다.
+    </div>
+    <div class="lg-summary"></div>
+    <section class="lg-panel">
+      <h2>고객 대장 <span style="font-weight:500; font-size:12.5px; color:var(--sub,#667085);">— 같은 사람을 번호 하나로 묶습니다 (줄을 누르면 이 분의 문의가 펼쳐집니다)</span></h2>
+      <div class="lg-wrap">
+        <table class="lg-cust">
+          <thead><tr><th>고객번호</th><th>이름</th><th>처음 알게 된 경로</th><th>문의 건수</th><th>계약 건수</th></tr></thead>
+          <tbody id="lg-cust-rows"></tbody>
+        </table>
+      </div>
+      <div class="lg-hint" style="margin-top:10px;">
+        <b>같은 연락처 = 같은 고객번호</b> — 이름이나 표기가 달라도 연락처(숫자만)가 같으면 한 분입니다. 이름이 같아도 연락처가 다르면 다른 고객입니다.<br>
+        <b>처음 알게 된 경로는 바뀌지 않습니다</b> — 고객을 처음 만들 때(첫 문의) 한 번만 정하고, 나중에 다른 경로로 또 문의해도 고치지 않습니다. 문의의 경로는 문의마다 따로 남습니다.<br>
+        <b>계약 건수</b>는 계약 결과가 「계약」인 문의 수입니다. 결과가 비어 있는 문의는 세지 않습니다.
+      </div>
+    </section>`;
+  const inqBox = document.getElementById("tab-inq"), custBox = document.getElementById("tab-cust");
+  if (inqBox && !inqBox.firstElementChild) inqBox.innerHTML = INQ_HTML;
+  if (custBox && !custBox.firstElementChild) custBox.innerHTML = CUST_HTML;
+  if (!document.getElementById("lg-form")) return;   // 이 화면에 대장 틀이 없으면 할 일이 없다
 
   const STORE_KEY = "company_inquiries_v1";
   const SOURCES = { search: "검색", map: "지도", referral: "지인 소개", sns: "SNS", phone: "전화", other: "기타", unknown: "모르겠음" };
