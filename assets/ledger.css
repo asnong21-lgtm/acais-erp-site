@@ -1,0 +1,39 @@
+/* 문의 대장 · 고객 대장 (연습용) — 운영관리자 화면의 탭에서 쓴다. 모든 규칙은 .lg 안에서만 적용된다. */
+.lg .lg-practice{ background:#fff4d6; border:1px solid #f0d78a; border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:14px; line-height:1.6; }
+.lg .lg-summary{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.lg .lg-stat{ background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px 16px; min-width:150px; }
+.lg .lg-stat b{ display:block; font-size:22px; line-height:1.2; }
+.lg .lg-stat span{ font-size:12px; color:var(--sub); }
+.lg .lg-stat.warn b{ color:#c4301c; }
+.lg .lg-panel{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+.lg h2{ margin:0 0 12px; font-size:15px; }
+.lg .lg-form{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; align-items:end; }
+.lg label{ display:block; font-size:12.5px; font-weight:700; margin-bottom:4px; }
+.lg label .req{ color:var(--accent); }
+.lg input, .lg select{ width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; }
+.lg td select{ width:auto; padding:5px 8px; font-size:13px; }
+.lg .lg-msg{ grid-column:1/-1; font-size:12.5px; min-height:18px; }
+.lg .lg-msg.err{ color:#c4301c; } .lg .lg-msg.ok{ color:var(--teal); } .lg .lg-msg.note{ color:var(--sub); }
+.lg .lg-hint{ font-size:11.5px; color:var(--sub); margin-top:3px; line-height:1.6; }
+.lg .lg-wrap{ overflow-x:auto; }
+.lg table{ width:100%; border-collapse:collapse; min-width:860px; }
+.lg table.lg-cust{ min-width:560px; }
+.lg table.lg-small{ min-width:0; }
+.lg th{ text-align:left; font-size:12px; color:var(--sub); background:#f3f5f8; padding:9px 10px; border-bottom:1px solid var(--line); white-space:nowrap; }
+.lg td{ padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+.lg .lg-sub{ display:block; font-size:11px; color:var(--sub); }
+.lg .lg-badge{ display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; margin-left:6px; white-space:nowrap; }
+.lg .lg-badge.missing{ background:#fdecea; color:#c4301c; }
+.lg .lg-badge.done{ background:var(--teal-bg); color:var(--teal); }
+.lg .lg-badge.hold{ background:#fff4d6; color:#8a6200; }
+.lg .lg-badge.fail{ background:#eef0f3; color:var(--sub); }
+.lg .lg-badge.first{ background:#e8f0fb; color:#2757a6; margin-left:0; }
+.lg .lg-empty{ text-align:center; color:var(--sub); padding:28px !important; }
+.lg .lg-del{ background:none; border:0; color:var(--sub); text-decoration:underline; font-size:12px; padding:0; cursor:pointer; }
+.lg .lg-clear{ background:#fff; color:var(--sub); border:1px solid var(--line); font-size:12.5px; padding:6px 12px; border-radius:8px; cursor:pointer; }
+.lg .lg-cust-row{ cursor:pointer; }
+.lg .lg-cust-row:hover td{ background:#fafbfd; }
+.lg .lg-toggle{ background:none; border:0; color:var(--navy); font-weight:700; padding:0 6px 0 0; font-size:13px; cursor:pointer; }
+.lg .lg-detail td{ background:#fafbfd; padding:12px 14px 14px 36px; }
+.lg .lg-detail .lg-note{ font-size:12px; color:var(--sub); margin-bottom:8px; }
+.lg .lg-num0{ color:var(--sub); } .lg .lg-num-pos{ font-weight:700; color:var(--teal); }
