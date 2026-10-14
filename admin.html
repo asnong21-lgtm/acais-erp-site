@@ -72,8 +72,8 @@
   <div class="wrap admin-tabs">
     <button class="admin-tab active" data-tab="rsv">대관신청 관리</button>
     <button class="admin-tab" data-tab="sug">건의사항 관리</button>
-    <button class="admin-tab" data-tab="inq" style="display:none;">문의 대장</button>
-    <button class="admin-tab" data-tab="cust" style="display:none;">고객 대장</button>
+    <button class="admin-tab" data-tab="inq">문의 대장</button>
+    <button class="admin-tab" data-tab="cust">고객 대장</button>
     <button class="admin-tab" data-tab="notice">공지사항 관리</button>
     <button class="admin-tab" data-tab="staff" id="staff-tab-btn" style="display:none;">직원 권한 관리</button>
     <button class="admin-tab" data-tab="me">내 계정</button>
@@ -100,7 +100,7 @@
         </table>
       </div>
 
-      <!-- 문의 대장·고객 대장 화면은 assets/ledger.js 가 이 칸을 채운다 (ERP 지도와 같은 코드) -->
+      <!-- 문의 대장·고객 대장: 홈페이지 문의(acais-inquiry)를 assets/inquiry-live.js 가 이 칸에 채운다. 연습용 대장은 ERP 지도 안에 있다 -->
       <div id="tab-inq" class="admin-panel lg" style="display:none;"></div>
       <div id="tab-cust" class="admin-panel lg" style="display:none;"></div>
 
@@ -196,7 +196,7 @@
 </script>
 
 <script src="assets/site.js"></script>
-<script src="assets/ledger.js"></script>
+<script src="assets/inquiry-live.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/sb.js"></script>
 <script>
@@ -260,6 +260,7 @@
     // 단장 권한은 단장만 줄 수 있음
     $("s-role").querySelector('option[value="owner"]').disabled = me.role !== "owner";
     loadReservations(); loadSuggestions(); loadNotices();
+    if (window.loadInquiryLedger) window.loadInquiryLedger(me);
     if (isOffice) loadStaff();
   }
 
