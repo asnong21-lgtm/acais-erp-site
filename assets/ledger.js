@@ -11,7 +11,7 @@
  */
 (function () {
   "use strict";
-  const IS_LOCAL = location.protocol === "file:" || ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  const IS_LOCAL = location.protocol === "file:" || location.protocol === "data:" || location.protocol === "blob:" || ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
   const tabBtns = document.querySelectorAll('.admin-tab[data-tab="inq"], .admin-tab[data-tab="cust"]');
   const panels = document.querySelectorAll("#tab-inq, #tab-cust");
   if (!IS_LOCAL) {            // 공개 주소에서는 탭과 화면을 아예 없앤다
