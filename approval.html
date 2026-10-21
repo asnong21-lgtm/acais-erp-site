@@ -879,5 +879,14 @@
   sb.auth.getSession().then(({ data: { session } }) => { if (session) start(); else showLogin(); });
 })();
 </script>
+<script>
+/* 공개 주소(github.io·pages.dev)에서는 지도(erp-map.html)가 같은 폴더에 있다. 로컬 파일 구조에서는 한 칸 위(../erp-map.html). */
+(function () {
+  var h = location.hostname;
+  if (location.protocol === "file:" || h === "localhost" || h === "127.0.0.1" || h === "[::1]") return;
+  var fix = function () { var a = document.querySelectorAll('a[href="../erp-map.html"]'); for (var i = 0; i < a.length; i++) a[i].setAttribute("href", "erp-map.html"); };
+  document.addEventListener("DOMContentLoaded", fix); window.addEventListener("load", fix);
+})();
+</script>
 </body>
 </html>

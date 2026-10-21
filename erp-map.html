@@ -1,0 +1,1898 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>시민활동통합지원단 ERP 지도</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#fff; --ink:#1f2430; --sub:#6b7280; --line:#e3e6eb;
+    --navy:#16324f; --teal:#2f8f7c;
+    --orange:#e8631c; --orange-bg:#fff1e8;
+    --green:#2f8f5b; --green-bg:#eaf7f0;
+    --blue:#2f6fed; --blue-bg:#eaf1ff;
+    --purple:#7a4fd1; --purple-bg:#f2ecfc;
+    --gray:#c5cad3; --chip-bg:#eef0f4;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{margin:0; font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif; background:var(--bg); color:var(--ink);}
+  a{color:inherit; text-decoration:none;}
+  button{font-family:inherit;}
+
+  .app{display:flex; min-height:100vh;}
+
+  /* ── 사이드바 ── */
+  .sidebar{
+    width:296px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--line);
+    position:sticky; top:0; height:100vh; overflow-y:auto; padding:22px 16px 28px;
+  }
+  .brand{display:flex; align-items:center; gap:10px; font-size:19px; font-weight:800; color:var(--navy); margin:0 6px 18px;}
+  .brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--navy),var(--teal));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;}
+  .map-card{display:block; background:var(--orange-bg); border:1px solid #f6d3bd; border-radius:14px; padding:14px 16px; margin-bottom:12px;}
+  .map-card .t{font-weight:800; font-size:15px; color:var(--navy);}
+  .map-card .s{font-size:12px; color:var(--sub); margin:5px 0 9px;}
+  .bar{height:6px; background:#f3dccd; border-radius:99px; overflow:hidden;}
+  .bar span{display:block; height:100%; background:var(--orange); border-radius:99px; transition:width .3s;}
+  .search{width:100%; padding:11px 14px; border:1px solid var(--line); border-radius:12px; font-size:13.5px; font-family:inherit; margin-bottom:10px; background:#fafbfc;}
+  .search:focus{outline:2px solid #cfe3f3; background:#fff;}
+  .mini-legend{display:flex; align-items:center; gap:10px; font-size:11.5px; color:var(--sub); margin:0 4px 14px;}
+  .mini-legend .dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+  .pill{font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:6px;}
+  .pill.wip{background:var(--orange-bg); color:var(--orange); border:1px solid #f6d3bd;}
+  .pill.todo{background:var(--chip-bg); color:var(--sub);}
+
+  .axis-label{font-size:11px; font-weight:800; letter-spacing:.04em; color:var(--sub); margin:16px 8px 4px;}
+  .grp-head{display:flex; align-items:center; justify-content:space-between; padding:10px 8px; cursor:pointer; border-radius:10px; user-select:none;}
+  .grp-head:hover{background:#f6f7f9;}
+  .grp-head .l{font-weight:800; font-size:13.5px; display:flex; align-items:center; gap:8px;}
+  .grp-head .chip{width:4px; height:15px; border-radius:2px; flex-shrink:0;}
+  .grp-head .cnt{font-size:11.5px; color:var(--sub); font-weight:500;}
+  .grp-head .caret{font-size:10px; color:var(--sub); transition:transform .15s;}
+  .grp.open .caret{transform:rotate(180deg);}
+  .grp-body{display:none; padding:0 0 6px;}
+  .grp.open .grp-body{display:block;}
+  .mi{display:flex; align-items:center; gap:10px; padding:9px 12px; margin:1px 0 1px 6px; border-radius:11px; cursor:pointer; font-size:13.5px;}
+  .mi:hover{background:#f3f5f8;}
+  .mi .d{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--gray);}
+  .mi.done .d{background:var(--green);}
+  .mi.wip .d{background:var(--orange);}
+  .mi.todo{color:var(--sub);}
+  .mi .n{flex:1;}
+  .mi .star{border:none;background:none;cursor:pointer;font-size:14px;color:#d3d7de;padding:0 2px;opacity:0;}
+  .mi:hover .star, .mi .star.on{opacity:1;}
+  .mi .star.on{color:#f2a900;}
+  .mi.active{background:var(--navy); color:#fff;}
+  .mi.active .d{background:#fff;}
+  .empty-note{font-size:12px; color:var(--sub); padding:6px 14px;}
+
+  /* ── 본문 ── */
+  main{flex:1; min-width:0;}
+  header.top{padding:24px 32px 16px; background:var(--panel); border-bottom:1px solid var(--line);}
+  header.top h1{margin:0 0 6px; font-size:24px; letter-spacing:-0.02em;}
+  header.top .meta{color:var(--sub); font-size:13px; line-height:1.7;}
+  .launch-bar{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;}
+  .launch-btn{display:inline-flex; align-items:center; gap:8px; padding:10px 16px; border-radius:9px; font-size:13px; font-weight:700; border:1px solid transparent;}
+  .launch-btn.site{background:var(--orange); color:#fff;}
+  .launch-btn.site:hover{background:#d1560f;}
+  .launch-btn.sheet{background:#0f9d58; color:#fff;}
+  .launch-btn.sheet:hover{background:#0c8047;}
+  .launch-btn.doc{background:#fff; color:var(--ink); border-color:var(--line);}
+  .launch-btn.doc:hover{border-color:var(--ink);}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; padding:16px 32px 0; font-size:12px; color:var(--sub);}
+  .legend span{display:inline-flex; align-items:center; gap:6px;}
+  .legend i{width:10px;height:10px;border-radius:3px;display:inline-block;}
+
+  .axis-block{padding:20px 32px 8px;}
+  .axis-title{display:flex; align-items:center; gap:10px; margin-bottom:4px;}
+  .axis-title .chip{width:6px; height:20px; border-radius:3px;}
+  .axis-title h2{font-size:17px; margin:0;}
+  .axis-title .tag{font-size:11px; padding:3px 8px; border-radius:999px; font-weight:600; background:var(--chip-bg); color:var(--sub);}
+  .axis-title .tag.op{background:var(--blue-bg); color:var(--blue);}
+  .axis-title .tag.act{background:var(--purple-bg); color:var(--purple);}
+  .axis-desc{color:var(--sub); font-size:12.5px; margin:0 0 14px;}
+  .columns{display:grid; grid-template-columns:repeat(4,1fr); gap:16px; padding:0 32px 8px;}
+  @media (max-width:1400px){ .columns{grid-template-columns:repeat(2,1fr);} }
+  .column{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; min-height:120px;}
+  .column-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; padding-bottom:8px; border-bottom:2px solid var(--ink);}
+  .column-head h3{margin:0; font-size:14.5px;}
+  .column-head .count{font-size:11px; color:var(--sub);}
+  .card{border:1px solid var(--line); border-left-width:4px; border-radius:9px; padding:10px 12px; margin-bottom:10px; background:#fbfbfc; scroll-margin-top:24px;}
+  .card:last-child{margin-bottom:0;}
+  .card.done{background:#f6fcf9;}
+  .card.wip{background:#fffaf6;}
+  .card.flash{animation:flash 1.6s ease;}
+  @keyframes flash{0%,60%{box-shadow:0 0 0 4px rgba(232,99,28,.35);} 100%{box-shadow:0 0 0 0 rgba(232,99,28,0);}}
+  .card-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
+  .card .name{font-weight:600; font-size:13.5px; margin-bottom:5px;}
+  .card .fields{font-size:11.5px; color:var(--sub); line-height:1.5;}
+  .badge{display:inline-block; font-size:10px; font-weight:700; padding:2px 7px; border-radius:5px;}
+  .badge.master{background:var(--purple-bg); color:var(--purple);}
+  .badge.ledger{background:var(--blue-bg); color:var(--blue);}
+  .badge.dash{background:var(--orange-bg); color:var(--orange);}
+  .badge.auto{background:var(--green-bg); color:var(--green);}
+  .badge.tool{background:#e9edf2; color:#3c4a5c;}
+  .st{font-size:10px; font-weight:700; display:inline-flex; align-items:center; gap:4px; color:var(--sub);}
+  .st::before{content:""; width:7px; height:7px; border-radius:50%; background:var(--gray);}
+  .st.done{color:var(--green);} .st.done::before{background:var(--green);}
+  .st.wip{color:var(--orange);} .st.wip::before{background:var(--orange);}
+  .subnote{margin-top:6px; font-size:11px; color:var(--orange); background:var(--orange-bg); padding:6px 8px; border-radius:6px; line-height:1.5;}
+  .card-links{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
+  .card-links a{font-size:11px; font-weight:700; padding:4px 9px; border-radius:7px; background:var(--navy); color:#fff;}
+  .card-links a.alt{background:#fff; color:var(--navy); border:1px solid var(--line);}
+  .card-links a:hover{opacity:.85;}
+
+  .open-issues{margin:8px 32px; background:#fff8e6; border:1px solid #f1d999; border-radius:10px; padding:14px 18px; font-size:12.5px; color:#7a5b12; line-height:1.6;}
+  .open-issues b{display:block; margin-bottom:4px; font-size:13px;}
+  footer{padding:24px 32px 48px; color:var(--sub); font-size:11.5px; line-height:1.7;}
+
+  .toast{position:fixed; left:50%; bottom:28px; transform:translateX(-50%) translateY(20px); background:#1f2430; color:#fff; padding:11px 18px; border-radius:10px; font-size:13px; opacity:0; pointer-events:none; transition:.25s; z-index:99; max-width:90vw;}
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+
+  /* ── ERP 지도 편집기 ── */
+  .ed-wrap{padding:18px 26px 26px;}
+  .ed-notice{background:var(--orange-bg); border:1px dashed #f0b48f; border-radius:10px; padding:11px 15px; font-size:13px; line-height:1.7; color:#5a4636; margin-bottom:12px;}
+  .ed-notice b{color:#3c2c1e;}
+  .ed-crumb{display:flex; align-items:center; gap:14px; font-size:12.5px; color:var(--sub); margin-bottom:10px;}
+  .ed-crumb a{font-weight:700; color:var(--navy); text-decoration:underline;}
+  .ed-tools{display:flex; flex-wrap:wrap; align-items:center; gap:5px; background:#1f2f45; border-radius:9px 9px 0 0; padding:8px 11px;}
+  .ed-tools .ttl{font-size:14px; font-weight:800; color:#fff; margin-right:6px;}
+  .tb{border:1px solid rgba(255,255,255,.2); background:rgba(255,255,255,.1); color:#fff; border-radius:7px; padding:5px 10px; font-size:13px; font-weight:700; white-space:nowrap; cursor:pointer;}
+  .tb:hover{background:rgba(255,255,255,.25);}
+  .tb:disabled{opacity:.3; cursor:default;}
+  .tb.ac{background:var(--orange); border-color:var(--orange);}
+  .tb.ac:hover{filter:brightness(1.12);}
+  .vbar{width:1px; height:19px; background:rgba(255,255,255,.22); margin:0 3px;}
+  .ed-body{display:flex; height:calc(100vh - 250px); min-height:520px; border:1px solid var(--line); border-top:0; border-radius:0 0 9px 9px; background:#fff; overflow:hidden;}
+  .ed-props{width:236px; flex-shrink:0; border-right:1px solid var(--line); padding:14px; overflow-y:auto; font-size:13px;}
+  .ed-props h4{font-size:11px; font-weight:800; color:#a9b1b8; letter-spacing:1px; margin:0 0 7px;}
+  .ed-props h4.mt{margin-top:18px;}
+  .ed-props .mini{display:flex; gap:8px; margin-bottom:6px;}
+  .ed-props .mini > div{flex:1; text-align:center; background:#fafbfc; border:1px solid var(--line); border-radius:9px; padding:7px 4px;}
+  .ed-props .mini .v{font-size:20px; font-weight:800;}
+  .ed-props .mini .k{font-size:10.5px; color:var(--sub);}
+  .ed-props .fld{margin-bottom:12px;}
+  .ed-props .fld label{display:block; font-size:11.5px; font-weight:700; color:var(--sub); margin-bottom:4px;}
+  .ed-props input[type=text]{width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-size:13px; font-family:inherit;}
+  .ed-props .seg{display:flex; gap:4px;}
+  .ed-props .seg button{flex:1; border:1px solid var(--line); background:#fafbfc; border-radius:7px; padding:6px 2px; font-size:12px; font-weight:700; color:var(--sub); cursor:pointer;}
+  .pal{display:flex; flex-wrap:wrap; gap:6px;}
+  .pal button, #ed-swatch button, #ed-menu .sw button{width:24px; height:24px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0;}
+  .pal button.on{border-color:#1f2430; box-shadow:0 0 0 2px #fff inset;}
+  .pal button.reset, #ed-swatch button.reset, #ed-menu .sw button.reset{background:#fff; border:1px solid var(--line); font-size:12px; color:var(--sub); width:auto; border-radius:12px; padding:0 8px;}
+  .ed-props .hint{font-size:12px; color:var(--sub); line-height:1.75;}
+  .ed-props .hint .k{display:inline-block; background:#eef0f4; border-radius:4px; padding:0 5px; font-family:Consolas,monospace; font-size:11px; color:#333;}
+  .ed-props .note{border:1px dashed #ccd2d7; background:#fafbfc; border-radius:8px; padding:10px; font-size:12.5px; color:#8b95a1; line-height:1.7;}
+  .ed-props code{font-size:11px; background:#eef0f4; padding:1px 5px; border-radius:4px; word-break:break-all;}
+  .ed-canvas{position:relative; flex:1; min-width:0; overflow:hidden; background:#faf6f0; cursor:grab;}
+  .ed-canvas.drag{cursor:grabbing;}
+  .ed-canvas svg{position:absolute; inset:0; width:100%; height:100%; user-select:none;}
+  #ed-edit{position:absolute; z-index:20; border:2px solid var(--blue); border-radius:6px; background:#fff; padding:0 7px; font-weight:800; color:var(--ink); outline:none; font-family:inherit; box-shadow:0 3px 12px rgba(0,0,0,.18); display:none;}
+  #ed-swatch{position:absolute; z-index:15; display:none; gap:5px; align-items:center; background:#fff; border:1px solid var(--line); border-radius:999px; padding:5px 8px; box-shadow:0 4px 14px rgba(0,0,0,.14);}
+  #ed-menu{position:absolute; z-index:30; min-width:190px; background:#fff; border:1px solid var(--line); border-radius:9px; padding:4px; box-shadow:0 8px 24px rgba(0,0,0,.16); display:none;}
+  #ed-menu > button{display:block; width:100%; border:0; background:none; border-radius:6px; padding:7px 11px; text-align:left; font-size:13px; color:var(--ink); cursor:pointer;}
+  #ed-menu > button:hover{background:#f1f3f5;}
+  #ed-menu > button.dg{color:#c0392b;}
+  #ed-menu .hr{height:1px; background:var(--line); margin:4px 0;}
+  #ed-menu .sw{display:flex; flex-wrap:wrap; gap:5px; padding:5px 8px;}
+  .ed-zoom{position:absolute; bottom:11px; right:11px; z-index:10; display:flex; align-items:center; gap:5px; background:#fff; border:1px solid var(--line); border-radius:9px; padding:5px 7px; box-shadow:0 1px 6px rgba(0,0,0,.08);}
+  .ed-zoom button{width:26px; height:26px; border:1px solid var(--line); background:#fafbfc; border-radius:6px; font-size:14px; font-weight:800; color:var(--navy); cursor:pointer;}
+  .ed-zoom .pc{min-width:40px; text-align:center; font-size:12px; font-weight:800; color:#6b7785;}
+  .ed-zoom .ft{width:auto; padding:0 8px; font-size:12px;}
+  .modal{position:fixed; inset:0; z-index:80; background:rgba(0,0,0,.55); display:none; align-items:center; justify-content:center; padding:20px;}
+  .modal.on{display:flex;}
+  .mbox{width:100%; max-width:720px; max-height:86vh; display:flex; flex-direction:column; background:#fff; border-radius:14px; overflow:hidden;}
+  .mhd{display:flex; align-items:center; gap:11px; background:#1f2f45; color:#fff; padding:11px 15px; font-weight:800; font-size:14px;}
+  .mhd button{border:1px solid rgba(255,255,255,.25); background:none; color:#fff; border-radius:7px; padding:4px 11px; font-size:13px; cursor:pointer;}
+  .mbox textarea{flex:1; min-height:320px; resize:none; border:0; outline:none; padding:12px 15px; font-family:Consolas,monospace; font-size:12.5px; line-height:1.6;}
+  .mft{display:flex; align-items:center; gap:10px; padding:10px 15px; border-top:1px solid var(--line); font-size:12px; color:var(--sub);}
+  .mft .msg{flex:1;}
+  .mft button{border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 14px; font-weight:700; cursor:pointer;}
+  .mft button.pr{background:var(--navy); color:#fff; border-color:var(--navy);}
+
+  @media (max-width:900px){
+    .app{display:block;}
+    .sidebar{position:static; width:auto; height:auto; max-height:70vh; border-right:none; border-bottom:1px solid var(--line);}
+    .columns{grid-template-columns:1fr; padding:0 16px 8px;}
+    header.top, .legend, .axis-block, footer{padding-left:16px; padding-right:16px;}
+    .open-issues{margin-left:16px; margin-right:16px;}
+    .ed-wrap{padding:12px 12px 20px;}
+    .ed-props{display:none;}
+    .ed-body{height:70vh;}
+  }
+  .lg-viewwrap{max-width:1100px; margin:0 auto; padding:18px 24px 40px;}
+  .lg-bar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px; font-size:12.5px; color:var(--sub);}
+  .lg-bar a{font-weight:700; color:var(--navy); text-decoration:underline;}
+  .lg-tabs{display:flex; gap:6px;}
+  .lg-tabs button{padding:8px 16px; border-radius:999px; border:1px solid var(--line); background:#fff; font:inherit; font-size:13px; font-weight:700; color:var(--sub); cursor:pointer;}
+  .lg-tabs button.on{background:var(--navy); color:#fff; border-color:var(--navy);}
+</style>
+<style>
+  .pp-wrap{max-width:1180px; margin:0 auto; padding:18px 24px 40px;}
+  .pp-bar{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px; font-size:12.5px; color:var(--sub);}
+  .pp-bar a{font-weight:700; color:var(--navy); text-decoration:underline;}
+  .pp-note{background:#fff4d6; border:1px solid #f0d78a; border-radius:10px; padding:10px 14px; font-size:12.5px; line-height:1.7; margin-bottom:14px;}
+  .pp-panel{background:#fff; border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px;}
+  .pp-panel h2{margin:0 0 10px; font-size:15px;}
+  .pp-sum{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;}
+  .pp-stat{background:#fff; border:1px solid var(--line); border-radius:10px; padding:10px 16px; min-width:130px;}
+  .pp-stat b{display:block; font-size:22px; line-height:1.2;} .pp-stat span{font-size:12px; color:var(--sub);}
+  .pp-set{display:flex; gap:10px; align-items:center; flex-wrap:wrap; font-size:13px;}
+  .pp-set select,.pp-form input,.pp-form select{padding:7px 9px; border:1px solid var(--line); border-radius:8px; font:inherit; background:#fff; width:100%;}
+  .pp-set select{width:auto;}
+  .pp-form{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; align-items:end;}
+  .pp-form label{display:block; font-size:12px; font-weight:700; margin-bottom:3px;}
+  .pp-msg{grid-column:1/-1; font-size:12.5px; min-height:18px; color:#c4301c;}
+  .pp-btn{padding:8px 16px; border:0; border-radius:8px; background:var(--orange); color:#fff; font:inherit; font-weight:700; cursor:pointer;}
+  .pp-btn.ghost{background:#fff; color:var(--sub); border:1px solid var(--line); font-weight:500; font-size:12.5px;}
+  .pp-wrapt{overflow-x:auto;} .pp-wrapt table{width:100%; border-collapse:collapse; min-width:980px;}
+  .pp-wrapt th{text-align:left; font-size:12px; color:var(--sub); background:#f3f5f8; padding:9px 10px; border-bottom:1px solid var(--line); white-space:nowrap;}
+  .pp-wrapt td{padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:middle; font-size:13.5px;}
+  .pp-unk{color:#8a6200; font-style:italic;}
+  .pp-b{display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; margin:0 4px 3px 0; white-space:nowrap;}
+  .pp-b.red{background:#fdecea; color:#c4301c;} .pp-b.yellow{background:#fff4d6; color:#8a6200;} .pp-b.green{background:#eaf7f0; color:#1f7a47;}
+  .pp-b.gray{background:#eef0f3; color:#6b7280;} .pp-b.blue{background:#eaf1ff; color:#2757a6;}
+  .pp-del{background:none; border:0; color:var(--sub); text-decoration:underline; font-size:12px; cursor:pointer; padding:0;}
+</style>
+<!--ledger-css:begin-->
+<style>
+/* 문의 대장 · 고객 대장 (연습용) — 운영관리자 화면의 탭에서 쓴다. 모든 규칙은 .lg 안에서만 적용된다. */
+.lg .lg-practice{ background:#fff4d6; border:1px solid #f0d78a; border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:14px; line-height:1.6; }
+.lg .lg-summary{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px; }
+.lg .lg-stat{ background:#fff; border:1px solid var(--line,#e4e7ec); border-radius:10px; padding:10px 16px; min-width:150px; }
+.lg .lg-stat b{ display:block; font-size:22px; line-height:1.2; }
+.lg .lg-stat span{ font-size:12px; color:var(--sub,#667085); }
+.lg .lg-stat.warn b{ color:#c4301c; }
+.lg .lg-panel{ background:#fff; border:1px solid var(--line,#e4e7ec); border-radius:12px; padding:16px; margin-bottom:16px; }
+.lg h2{ margin:0 0 12px; font-size:15px; }
+.lg .lg-form{ display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:12px; align-items:end; }
+.lg label{ display:block; font-size:12.5px; font-weight:700; margin-bottom:4px; }
+.lg label .req{ color:var(--accent,#e8631c); }
+.lg input, .lg select{ width:100%; padding:8px 10px; border:1px solid var(--line,#e4e7ec); border-radius:8px; font:inherit; background:#fff; }
+.lg td select{ width:auto; padding:5px 8px; font-size:13px; }
+.lg .lg-msg{ grid-column:1/-1; font-size:12.5px; min-height:18px; }
+.lg .lg-msg.err{ color:#c4301c; } .lg .lg-msg.ok{ color:var(--teal,#2f8f7c); } .lg .lg-msg.note{ color:var(--sub,#667085); }
+.lg .lg-hint{ font-size:11.5px; color:var(--sub,#667085); margin-top:3px; line-height:1.6; }
+.lg .lg-wrap{ overflow-x:auto; }
+.lg table{ width:100%; border-collapse:collapse; min-width:860px; }
+.lg table.lg-cust{ min-width:560px; }
+.lg table.lg-small{ min-width:0; }
+.lg th{ text-align:left; font-size:12px; color:var(--sub,#667085); background:#f3f5f8; padding:9px 10px; border-bottom:1px solid var(--line,#e4e7ec); white-space:nowrap; }
+.lg td{ padding:9px 10px; border-bottom:1px solid var(--line,#e4e7ec); vertical-align:middle; }
+.lg .lg-sub{ display:block; font-size:11px; color:var(--sub,#667085); }
+.lg .lg-badge{ display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; margin-left:6px; white-space:nowrap; }
+.lg .lg-badge.missing{ background:#fdecea; color:#c4301c; }
+.lg .lg-badge.done{ background:var(--teal-bg,#eaf7f4); color:var(--teal,#2f8f7c); }
+.lg .lg-badge.hold{ background:#fff4d6; color:#8a6200; }
+.lg .lg-badge.fail{ background:#eef0f3; color:var(--sub,#667085); }
+.lg .lg-badge.first{ background:#e8f0fb; color:#2757a6; margin-left:0; }
+.lg .lg-empty{ text-align:center; color:var(--sub,#667085); padding:28px !important; }
+.lg .lg-del{ background:none; border:0; color:var(--sub,#667085); text-decoration:underline; font-size:12px; padding:0; cursor:pointer; }
+.lg .lg-clear{ background:#fff; color:var(--sub,#667085); border:1px solid var(--line,#e4e7ec); font-size:12.5px; padding:6px 12px; border-radius:8px; cursor:pointer; }
+.lg .lg-cust-row{ cursor:pointer; }
+.lg .lg-cust-row:hover td{ background:#fafbfd; }
+.lg .lg-toggle{ background:none; border:0; color:var(--navy,#16324f); font-weight:700; padding:0 6px 0 0; font-size:13px; cursor:pointer; }
+.lg .lg-detail td{ background:#fafbfd; padding:12px 14px 14px 36px; }
+.lg .lg-detail .lg-note{ font-size:12px; color:var(--sub,#667085); margin-bottom:8px; }
+.lg .lg-num0{ color:var(--sub,#667085); } .lg .lg-num-pos{ font-weight:700; color:var(--teal,#2f8f7c); }
+.lg .lg-btn{ padding:9px 18px; border:0; border-radius:8px; background:var(--accent,#e8631c); color:#fff; font:inherit; font-weight:700; cursor:pointer; }
+.lg .lg-btn:hover{ background:#d1560f; }
+.lg{ font-size:14px; line-height:1.5; }
+</style>
+<!--ledger-css:end-->
+</head>
+<body>
+<div class="app">
+
+  <aside class="sidebar">
+    <div class="brand"><span class="logo">시</span>지원단 작업대</div>
+    <a class="map-card" href="#top" id="map-card">
+      <div class="t">🗺️ ERP 지도</div>
+      <div class="s" id="map-summary"></div>
+      <div class="bar"><span id="map-bar"></span></div>
+    </a>
+    <input class="search" id="menu-search" type="search" placeholder="화면 찾기 (예: 예산, 대관, 참여자)" autocomplete="off">
+    <div class="mini-legend">
+      <span><i class="dot" style="background:var(--green)"></i>완성</span>
+      <span class="pill wip">진행중</span>
+      <span class="pill todo">미완성</span>
+    </div>
+    <nav id="menu"></nav>
+  </aside>
+
+  <main id="top">
+
+    <!-- ══ 화면 1: ERP 지도 ══ -->
+    <div id="view-map">
+      <header class="top">
+        <h1>시민활동통합지원단 ERP 지도</h1>
+        <div class="meta">
+          시민활동통합지원단 · 사무국 + 5개 센터(공익활동·마을공동체·사회적경제·도농교류·도시재생) · 직원 15명 · 안성시 위탁 예산 운영
+        </div>
+        <div class="meta" style="margin-top:6px;color:#8a6200;">🌐 공개 사이트에 올라간 지도입니다. 연습용 화면(사람 명부 · 자료 수집현황)에는 <b>가상 값만</b> 넣으세요 — 실제 직원 정보·금액·계좌번호는 넣지 않습니다. 입력한 내용은 이 브라우저에만 저장됩니다.</div>
+        <div class="launch-bar">
+          <a class="launch-btn site" href="https://asnong21-lgtm.github.io/acais-erp-site/" target="_blank" rel="noopener">🌍 실제 공개 홈페이지</a>
+          <a class="launch-btn sheet" href="admin.html">🛠️ 운영관리자 화면 열기</a>
+        </div>
+      </header>
+
+      <div class="legend">
+        <span><i style="background:var(--purple)"></i> 마스터 (기준정보)</span>
+        <span><i style="background:var(--blue)"></i> 원장 (직접 입력)</span>
+        <span><i style="background:var(--orange)"></i> 대시보드 (집계·뷰)</span>
+        <span><i style="background:var(--green)"></i> 자동화 (자동 계산·동기화)</span>
+        <span><i style="background:#3c4a5c"></i> 도구</span>
+      </div>
+
+      <div id="board"></div>
+
+      <div class="open-issues">
+        <b>아직 정해지지 않은 사항</b>
+        실제 제작(구축) 순서 · 역할 세분화 여부(센터장/담당자 구분) · 5개 센터별 사업 성격 차이를 시트 구조에 반영할지 여부<br>
+        <b style="margin-top:8px;">상태 표시 기준</b>
+        완성 = 화면이 만들어져 동작함 (구글 시트 연동 배포 전에는 샘플 데이터로 동작) · 진행중 = 데이터 틀만 있고 관리 화면은 아직 없음 · 미완성 = 설계만 된 상태
+      </div>
+
+      <footer>
+        기술 스택: Google Sheets(마스터 DB) + Google Apps Script(Web App)<br>
+        칸의 이름·자리·색은 왼쪽 메뉴 <b>설정 › ERP 지도 편집</b>에서 마우스로 고칠 수 있습니다.<br>
+        놋반안성방짜유기(주) 사례는 보드 구성 방식만 참고했으며, 이 구조는 본 조직 전용으로 새로 설계됨
+      </footer>
+    </div>
+
+    <!-- ══ 화면 2: ERP 지도 편집 ══ -->
+    <div id="view-edit" style="display:none;">
+      <div class="ed-wrap">
+        <div class="ed-notice">
+          <b>ERP 지도 편집</b> 화면입니다. 칸을 <b>더블클릭</b>하면 이름이 바뀌고, <b>끌면</b> 자리가 옮겨지고, <b>눌러서</b> 색을 바꿀 수 있습니다.
+          고친 내용은 바로 왼쪽 메뉴와 ERP 지도에 반영되고 <b>이 브라우저에 자동 저장</b>됩니다(다른 컴퓨터에는 따라가지 않으니 「JSON」으로 옮기세요).
+          칸의 <b>링크와 완성 상태는 그대로</b> 유지됩니다.
+        </div>
+        <div class="ed-crumb"><a href="#top" id="ed-back">← ERP 지도로</a><span>설정 › ERP 지도 편집</span></div>
+
+        <div class="ed-tools">
+          <span class="ttl">ERP 지도 마인드맵</span>
+          <button class="tb" data-tb="child" title="Tab">＋ 하위</button>
+          <button class="tb" data-tb="sib" title="Enter">＋ 같은 단계</button>
+          <button class="tb" data-tb="del" title="Delete">삭제</button>
+          <span class="vbar"></span>
+          <button class="tb" id="ed-undo" data-tb="undo" title="Ctrl+Z">↶</button>
+          <button class="tb" id="ed-redo" data-tb="redo" title="Ctrl+Shift+Z">↷</button>
+          <span class="vbar"></span>
+          <button class="tb" data-tb="flip">⇄ 좌우</button>
+          <button class="tb" data-tb="fold">접기/펴기</button>
+          <button class="tb" data-tb="fit">화면 맞춤</button>
+          <span style="flex:1"></span>
+          <button class="tb" data-tb="json">JSON</button>
+          <button class="tb ac" data-tb="png">PNG 그림</button>
+          <button class="tb" data-tb="reset">원래대로</button>
+        </div>
+        <div class="ed-body">
+          <aside class="ed-props" id="ed-props"></aside>
+          <div class="ed-canvas" id="ed-canvas">
+            <svg id="ed-svg" style="font-family:'Malgun Gothic','맑은 고딕',system-ui,sans-serif"><g id="ed-vp" data-vp="1"></g></svg>
+            <input id="ed-edit">
+            <div id="ed-swatch"></div>
+            <div id="ed-menu"></div>
+            <div class="ed-zoom">
+              <button data-zoom="out">−</button><span class="pc" id="ed-zpc">100%</span><button data-zoom="in">＋</button><button class="ft" data-zoom="fit">맞춤</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ 화면 3: 문의 대장 · 고객 대장 (운영관리자 로그인 없이 지도에서 바로) ══ -->
+    <div id="view-ledger" style="display:none;">
+      <div class="lg-viewwrap">
+        <div class="lg-bar">
+          <a href="#top" id="lg-back">← ERP 지도로</a>
+          <div class="lg-tabs" role="tablist">
+            <button type="button" data-lgtab="inq" role="tab">📥 문의 대장</button>
+            <button type="button" data-lgtab="cust" role="tab">👥 고객 대장</button>
+          </div>
+          <span>⑧ 소통·확산 › 연습용 (로그인 없이 열립니다)</span>
+        </div>
+        <div id="tab-inq" class="lg"></div>
+        <div id="tab-cust" class="lg" style="display:none;"></div>
+      </div>
+    </div>
+
+    <!-- ══ 화면 4: 사람 명부 + 노무 배지 (연습용 · 로그인 없이 지도에서 바로) ══ -->
+    <div id="view-people" style="display:none;">
+      <div class="pp-wrap">
+        <div class="pp-bar"><a href="#top" id="pp-back">← ERP 지도로</a><span>③ 인사·근태 › 사람 명부 (연습용 · 로그인 없이 열립니다)</span></div>
+        <div id="pp-root"></div>
+      </div>
+    </div>
+
+    <!-- ══ 화면 5: 자료 수집현황 (연습용 · 로그인 없이 지도에서 바로) ══ -->
+    <div id="view-datastatus" style="display:none;">
+      <div class="pp-wrap">
+        <div class="pp-bar"><a href="#top" id="ds-back">← ERP 지도로</a><span>① 예산·정산 › 자료 수집현황 (연습용 · 로그인 없이 열립니다)</span></div>
+        <div id="ds-root"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal" id="modal">
+  <div class="mbox">
+    <div class="mhd"><span>JSON — 저장 / 불러오기</span><span style="flex:1"></span><button id="m-close">닫기</button></div>
+    <textarea id="m-text" spellcheck="false"></textarea>
+    <div class="mft"><span class="msg" id="m-msg">이 글을 파일로 저장해 두면 다른 컴퓨터에서 붙여넣어 그대로 되살릴 수 있습니다.</span>
+      <button id="m-copy">복사</button><button class="pr" id="m-apply">불러오기</button></div>
+  </div>
+</div>
+
+<script>
+/* ═════════════════════════════════════════════════════════════════════
+ * 1) ERP 메뉴 기본 정의 (코드가 정본)
+ *    status: done(완성) / wip(진행중) / todo(미완성)
+ *    마우스로 고친 이름·자리·색은 "덧씌우기"로만 저장되므로,
+ *    여기서 새 칸을 추가하거나 상태를 바꾸면 그대로 반영된다.
+ * ═════════════════════════════════════════════════════════════════════ */
+const STATUS = { done: "완성", wip: "진행중", todo: "미완성" };
+const TYPE = { master: "마스터", ledger: "원장", dash: "대시보드", auto: "자동화", tool: "도구" };
+const PALETTE = ["#16324f", "#2f6fed", "#2f8f7c", "#4a7c45", "#e8631c", "#b3503a", "#7a4fd1", "#6b7785"];
+
+const GROUP_TITLES = {
+  budget: "① 예산·정산", admin: "② 행정·마감", hr: "③ 인사·근태", space: "④ 자원·공간",
+  program: "⑤ 사업·프로그램", people: "⑥ 참여자·성장지원", gov: "⑦ 거버넌스·의사결정", comm: "⑧ 소통·확산",
+  tools: "전사도구", common: "설정",
+};
+
+const SECTIONS_DEF = [
+  { id: "sec_A", t: "A. 운영 축", tag: "사업체적 성격", cls: "op", c: "#2f6fed", side: "R",
+    desc: "안성시 위탁사업 수행기관으로서의 책임과 행정 — 예산·정산, 행정·마감, 인사·근태, 자원·공간",
+    groups: ["budget", "admin", "hr", "space"] },
+  { id: "sec_B", t: "B. 활동 축", tag: "결사체적 성격", cls: "act", c: "#7a4fd1", side: "L",
+    desc: "시민·단체·마을과 함께 만들어가는 관계와 참여 — 사업·프로그램, 참여자·성장지원, 거버넌스·의사결정, 소통·확산",
+    groups: ["program", "people", "gov", "comm"] },
+  { id: "sec_C", t: "공통", tag: "", cls: "", c: "#16324f", side: "R",
+    desc: "모든 직원이 함께 쓰는 사내 메신저(단톡), 모든 화면의 기준이 되는 직원·조직 정보와 ERP 지도 편집",
+    groups: ["tools", "common"] },
+];
+
+const ITEMS = [
+  // ① 예산·정산
+  { id: "data_status", g: "budget", name: "자료 수집현황", type: "ledger", status: "done",
+    fields: "자료(통장 · 카드 · 세금계산서 · 현금영수증) · 클로브에 연결 · 마지막으로 가져온 날 · 며칠 지남 · 상태 배지 · 메모",
+    note: "숫자를 읽기 전에 「무엇이 언제까지 들어와 있나」부터 · 최신 / 확인 필요 / 오래됨 / 연결 안 됨<br>⚠ 연습용: 금액·거래처·계좌번호는 적지 않습니다(이 폴더는 잠겨 있지 않음). 이 컴퓨터 브라우저에만 저장됩니다<br>🔓 지도에서 로그인 없이 바로 열립니다",
+    action: "datastatus" },
+  { id: "budget_plan", g: "budget", name: "예산편성", type: "ledger", status: "todo", fields: "연도 · 센터/사업 · 세부과목 · 편성액 · 재원(보조금/자부담)" },
+  { id: "budget_exec", g: "budget", name: "예산집행", type: "ledger", status: "todo", fields: "집행일 · 센터 · 사업명 · 항목 · 집행액 · 증빙 · 입력자" },
+  { id: "settle", g: "budget", name: "정산보고관리", type: "ledger", status: "todo", fields: "사업명 · 정산마감일 · 제출여부 · 제출일 · 담당자 · 상태" },
+  // ② 행정·마감
+  { id: "approval", g: "admin", name: "전자결재", type: "tool", status: "wip",
+    fields: "departments(부서 · 부서장 · 근태 전결 · 지출 전결 한도) · approval_docs(문서번호 · 종류 · 기안자 · 기간 · 일수 · 상태 · 부서장/단장 결재일시) — Supabase",
+    note: "1단계(Supabase): 연차·휴가 · 결재선 = 부서(기안 → 부서장 → 단장) · 자기 결재 방지 · 내 차례/내 신청/전체 문서함 · 회수·반려 · 실시간 갱신<br>2단계: 시간외근무 · 지출결의서(승인 ≠ 집행) · 연차 현황(부여 − 승인된 사용 = 잔여) · 근태 전결 · 지출 전결 한도<br>일반 기안(문서): 기안(품의)·사업계획·결과보고·공문 발송·협조 · 모든 문서에 파일 첨부(파일당 20MB) · 문서 보기 창<br>남은 것: 출장·외근 · 예산집행 짝맞추기",
+    links: [{ label: "전자결재 열기", href: "approval.html" }, { label: "결재선 보기", href: "approval.html#lines" }] },
+  { id: "contract", g: "admin", name: "계약협약관리", type: "ledger", status: "todo", fields: "계약명 · 상대기관 · 유형(위탁/MOU) · 체결일 · 만료일 · 담당자" },
+  { id: "deadline", g: "admin", name: "마감일통합대시보드", type: "dash", status: "todo", fields: "예산 · 계약 · 사업 탭의 마감일을 자동 집계해 D-day로 표시" },
+  // ③ 인사·근태
+  { id: "attendance", g: "hr", name: "근태기록", type: "ledger", status: "todo", fields: "직원ID · 날짜 · 출퇴근시각 · 근태구분" },
+  { id: "payroll", g: "hr", name: "급여계산", type: "auto", status: "todo", fields: "직원ID · 급여월 · 기본급 · 수당 · 공제 · 실지급액 (근태 연동)",
+    note: "대상: 단장 포함 전 직원(2026-10-07 결정) · 연차는 시간 단위(하루 7시간) · 시간외는 승인된 결재 문서에서 센다" },
+  { id: "roster", g: "hr", name: "사람 명부", type: "ledger", status: "done",
+    fields: "이름 · 부서 · 고용형태(정함 없음/계약직/단시간) · 주 소정근로시간 · 계약 종료일 · 근로계약서(작성/없음) · 교부일 + 노무 상태 배지 · 설정: 상시 5인 이상",
+    note: "비어 있는 칸은 「없음」이 아니라 「모름」 · 배지는 「확인 필요」까지만(합법/위법 판단 없음)<br>⚠ 연습용: 가상 직원 5명만, 이 컴퓨터 브라우저에만 저장됩니다(실제 직원 이름·월급 금지)<br>🔓 지도에서 로그인 없이 바로 열립니다",
+    action: "people" },
+  { id: "recruit", g: "hr", name: "채용관리", type: "ledger", status: "todo", fields: "공고명 · 지원자 · 전형단계 · 결과" },
+  // ④ 자원·공간
+  { id: "space_master", g: "space", name: "공간마스터", type: "master", status: "wip", fields: "key · 공간명(name) · 수용인원(cap)", note: "시트에 기본 공간 3곳이 들어 있음 · 관리 화면은 아직 없음" },
+  { id: "space_rsv", g: "space", name: "공간예약", type: "ledger", status: "done", fields: "접수일시 · 공간 · 대관일자 · 시작/종료시간 · 신청자명 · 연락처 · 이메일 · 인원 · 목적 · 상태",
+    note: "🔗 홈페이지 대관신청 폼과 직접 연동",
+    links: [{ label: "대관신청 관리", href: "admin.html#rsv" }, { label: "홈페이지 신청 폼", href: "reservation.html", site: true }] },
+  { id: "equipment", g: "space", name: "비품장비관리", type: "ledger", status: "todo", fields: "품목 · 관리번호 · 보유센터 · 상태" },
+  // ⑤ 사업·프로그램
+  { id: "program_master", g: "program", name: "사업마스터", type: "master", status: "todo", fields: "사업ID · 사업명 · 소속센터 · 담당자 · 기간 · 예산연계 · 개요" },
+  { id: "program_progress", g: "program", name: "사업진행상황", type: "ledger", status: "todo", fields: "사업ID · 진행률 · 이슈 · 최종보고여부" },
+  // ⑥ 참여자·성장지원
+  { id: "pmaster", g: "people", name: "참여자마스터", type: "master", status: "todo", fields: "참여자ID · 유형(개인/단체/기업/마을공동체) · 이름 · 연락처 · 담당센터 · 상태" },
+  { id: "prelation", g: "people", name: "참여자관계(전환이력)", type: "ledger", status: "todo", fields: "조직참여자ID · 관련개인참여자ID · 관계유형(설립자 등) · 전환일" },
+  { id: "phistory", g: "people", name: "참여이력", type: "ledger", status: "todo", fields: "참여자ID · 사업ID · 참여일 · 역할" },
+  { id: "psupport", g: "people", name: "성장지원내역", type: "ledger", status: "todo", fields: "참여자ID · 지원유형(컨설팅/자금/교육) · 지원일 · 내용" },
+  { id: "peval", g: "people", name: "성장진단평가", type: "ledger", status: "todo", fields: "참여자ID · 평가회차 · 평가주체 · 평가자 · 6대지표 점수 · 코멘트 · 종합의견",
+    note: "6대 지표: 민주적 관리 · 재정자립 · 독립성 · 교육훈련및정보제공 · 타조직연대 · 지역사회기여<br>반기 1·2회차 = 담당직원 평가 / 연 1회 종합 = 자가진단+외부평가위원 병행" },
+  // ⑦ 거버넌스·의사결정
+  { id: "meeting_master", g: "gov", name: "회의체마스터", type: "master", status: "todo", fields: "회의체명(운영위원회/협의체/총회) · 구성 · 소관" },
+  { id: "meeting_log", g: "gov", name: "회의기록", type: "ledger", status: "todo", fields: "회의체ID · 일시 · 참석자 · 안건 · 의결사항 · 회의록링크" },
+  { id: "suggest", g: "gov", name: "건의민원관리", type: "ledger", status: "done", fields: "접수일시 · 이름 · 연락처 · 이메일 · 제목 · 내용 · 공개여부 · 처리상태 · 답변",
+    note: "🔗 홈페이지 \"지원단에 바란다\" 문의 게시판과 직접 연동",
+    links: [{ label: "건의사항 관리", href: "admin.html#sug" }, { label: "홈페이지 게시판", href: "suggestion.html", site: true }] },
+  // ⑧ 소통·확산
+  { id: "notice", g: "comm", name: "공지사항", type: "ledger", status: "done", fields: "id · 분류 · 제목 · 내용 · 게시일 · 게시여부",
+    note: "🔗 홈페이지 공지사항 화면에 그대로 표시",
+    links: [{ label: "공지사항 관리", href: "admin.html#notice" }, { label: "홈페이지 공지사항", href: "notice.html", site: true }] },
+  { id: "inquiry_ledger", g: "comm", name: "문의 대장", type: "ledger", status: "done",
+    fields: "접수일 · 이름 · 연락처 · 관심 서비스 · 경로(어디서 알고 오셨나) · 응대 단계(접수/연락중/상담완료) · 계약 결과(계약/보류/실패)",
+    note: "응대 단계와 계약 결과는 서로 다른 칸 · 계약 결과가 비면 「미입력」 배지<br>⚠ 연습용: 이 컴퓨터 브라우저에만 저장됩니다(가상 이름·번호만). 실제 홈페이지 문의는 Supabase(acais-inquiry)에 쌓이고, 직원이 함께 보는 대장은 6회차에 만듭니다<br>🔒 공개 사이트에서는 운영관리자 로그인(단장·사무국) 뒤에 실제 문의가 보입니다. 연습용 대장은 이 컴퓨터의 로컬 지도에서만 열립니다",
+    links: [{ label: "문의 대장 열기 (운영관리자 로그인)", href: "admin.html#inq" }] },
+  { id: "customer_ledger", g: "comm", name: "고객 대장", type: "ledger", status: "done",
+    fields: "고객번호(C-0001) · 이름 · 연락처 · 처음 알게 된 경로 · 문의 건수 · 계약 건수",
+    note: "같은 연락처 = 같은 고객번호(이름 아님) · 처음 알게 된 경로는 첫 문의 때 한 번만 정해지고 바뀌지 않음<br>⚠ 연습용: 문의 대장과 같은 화면에 이어져 있고 이 컴퓨터에만 저장됩니다<br>🔒 공개 사이트에서는 운영관리자 로그인(단장·사무국) 뒤에 실제 문의가 보입니다. 연습용 대장은 이 컴퓨터의 로컬 지도에서만 열립니다",
+    links: [{ label: "고객 대장 열기 (운영관리자 로그인)", href: "admin.html#cust" }] },
+  { id: "promo", g: "comm", name: "홍보콘텐츠관리", type: "ledger", status: "todo", fields: "유형(홈페이지/SNS/소식지) · 제목 · 게시일 · 담당자 · 링크" },
+  { id: "cases", g: "comm", name: "성과사례관리", type: "ledger", status: "todo", fields: "사례제목 · 관련사업ID · 관련참여자ID · 내용요약" },
+  // 전사도구
+  { id: "talk", g: "tools", name: "단톡 (사내 메신저)", type: "tool", status: "wip",
+    fields: "메신저방(종류 · 방이름) · 방멤버(직원이메일 · 읽은시각) · 메시지(보낸사람 · 내용 · 보낸시각 · 지운시각)",
+    note: "1차 완료: 1:1 대화 · 안읽음 숫자 · 기본 단체방 7개(전체·사무국·5개 센터) · Enter 보내기/Shift+Enter 줄바꿈<br>2차 예정: 지원단 알림방 · 업무시간 밖(21시~08시) 알림 숨김 · 180일 보관 후 자동 삭제",
+    links: [{ label: "단톡 열기", href: "talk.html" }] },
+  // 설정
+  { id: "staff", g: "common", name: "직원마스터 (권한관리)", type: "master", status: "done", fields: "직원ID · 이름 · 이메일 · 소속 · 직급 · 권한레벨",
+    note: "🔗 운영관리자 화면 '직원 권한 관리' 탭 (대표·사무국 전용)",
+    links: [{ label: "직원 권한 관리", href: "admin.html#staff" }] },
+  { id: "org", g: "common", name: "조직단위마스터", type: "master", status: "todo", fields: "조직단위명(사무국 / 5개 센터)" },
+  { id: "map_edit", g: "common", name: "ERP 지도 편집", type: "tool", status: "done", action: "editor",
+    fields: "칸 이름 고치기 · 끌어서 자리 옮기기 · 눌러서 색 바꾸기 · 칸 추가/삭제 · JSON/PNG 내보내기",
+    note: "🖱️ 고친 내용은 이 브라우저에 자동 저장됩니다" },
+];
+
+const DEFAULT_FAV = ["talk", "notice", "space_rsv", "suggest", "deadline", "budget_exec"];
+
+/* 기본 지도 트리를 만든다. kind: root > section > group > item */
+function buildDefault() {
+  const root = { id: "root", kind: "root", t: "시민활동통합지원단 ERP", kids: [] };
+  SECTIONS_DEF.forEach(s => {
+    const sec = { id: s.id, kind: "section", t: s.t, tag: s.tag, cls: s.cls, desc: s.desc, c: s.c, side: s.side, kids: [] };
+    s.groups.forEach(g => {
+      const grp = { id: g, kind: "group", t: GROUP_TITLES[g], c: null, kids: [] };
+      ITEMS.filter(i => i.g === g).forEach(i => grp.kids.push({
+        id: i.id, kind: "item", t: i.name, st: i.status, type: i.type, fields: i.fields,
+        note: i.note || "", links: i.links || [], action: i.action || null, c: null, kids: [],
+      }));
+      sec.kids.push(grp);
+    });
+    root.kids.push(sec);
+  });
+  return root;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+ * 2) 공통 도구 · 저장/불러오기 (덧씌우기 방식)
+ * ═════════════════════════════════════════════════════════════════════ */
+const $ = (s) => document.querySelector(s);
+function esc(v) { return String(v == null ? "" : v).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function walk(n, f, p) { f(n, p || null); n.kids.forEach(k => walk(k, f, n)); }
+function findNode(root, id) { let h = null; walk(root, n => { if (n.id === id) h = n; }); return h; }
+function parentOf(root, id) { let h = null; walk(root, (n, p) => { if (n.id === id) h = p; }); return h; }
+function containsId(n, id) { let y = false; walk(n, x => { if (x.id === id) y = true; }); return y; }
+function countItems(n) { const r = { done: 0, wip: 0, todo: 0 }; walk(n, x => { if (x.kind === "item") r[x.st || "todo"]++; }); return r; }
+function itemsOf(n) { const out = []; walk(n, x => { if (x.kind === "item") out.push(x); }); return out; }
+
+function load(key, fallback) { try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; } }
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); return true; } catch (e) { return false; } }
+
+const LS_LAYOUT = "erp_map_layout_v1";
+const norm = (v) => (v == null || v === false ? null : v);
+
+/** 지금 트리와 기본 트리를 비교해서, 달라진 것만 뽑는다 */
+function toOverlay(tree) {
+  const base = {}; walk(buildDefault(), n => { base[n.id] = n; });
+  const cur = {};
+  const ov = { v: 1, kidsOf: {}, over: {}, custom: {}, removed: [] };
+  walk(tree, n => {
+    cur[n.id] = n;
+    ov.kidsOf[n.id] = n.kids.map(k => k.id);
+    if (n.custom) {
+      const c = {};
+      ["kind", "t", "st", "type", "fields", "note", "links", "c", "side", "fold", "tag", "desc", "cls"].forEach(k => { if (n[k] !== undefined) c[k] = n[k]; });
+      ov.custom[n.id] = c;
+      return;
+    }
+    const b = base[n.id]; if (!b) return;
+    const d = {};
+    ["t", "c", "st", "side", "fold"].forEach(k => {
+      const a = norm(n[k]), z = norm(b[k]);
+      if (a !== z) d[k] = (a === null && k === "fold") ? false : a;
+    });
+    if (Object.keys(d).length) ov.over[n.id] = d;
+  });
+  Object.keys(base).forEach(id => { if (!cur[id]) ov.removed.push(id); });
+  return ov;
+}
+
+/** 기본 트리에 덧씌우기를 적용한다. 코드에 새로 생긴 칸은 원래 자리에 붙는다. 이상하면 기본으로 돌아간다. */
+function fromOverlay(ov) {
+  const base = buildDefault();
+  const nodes = {}, baseParent = {};
+  walk(base, n => { nodes[n.id] = n; n.kids.forEach(k => { baseParent[k.id] = n.id; }); });
+  Object.keys(ov.custom || {}).forEach(id => { nodes[id] = Object.assign({ id, kids: [] }, ov.custom[id], { custom: true }); });
+  (ov.removed || []).forEach(id => { delete nodes[id]; });
+  Object.keys(ov.over || {}).forEach(id => { if (nodes[id]) Object.assign(nodes[id], ov.over[id]); });
+  Object.keys(nodes).forEach(id => { nodes[id].kids = []; });
+
+  const placed = new Set(["root"]);
+  Object.keys(ov.kidsOf || {}).forEach(pid => {
+    const p = nodes[pid]; if (!p) return;
+    (ov.kidsOf[pid] || []).forEach(cid => {
+      const c = nodes[cid];
+      if (c && !placed.has(cid)) { p.kids.push(c); placed.add(cid); }
+    });
+  });
+  const firstGroup = () => { let g = null; walk(nodes.root, n => { if (!g && n.kind === "group") g = n; }); return g; };
+  walk(base, n => {
+    if (placed.has(n.id) || !nodes[n.id]) return;
+    let p = nodes[baseParent[n.id]];
+    if (!p || !placed.has(p.id)) p = (nodes[n.id].kind === "item" ? firstGroup() : nodes.root) || nodes.root;
+    p.kids.push(nodes[n.id]); placed.add(n.id);
+  });
+  Object.keys(nodes).forEach(id => { if (!placed.has(id)) delete nodes[id]; });
+
+  // 순환·중복 검사 — 이상하면 예외로 기본값 사용
+  const seen = new Set();
+  walk(nodes.root, n => { if (seen.has(n.id)) throw new Error("dup"); seen.add(n.id); });
+  return nodes.root;
+}
+
+let TREE;
+function loadTree() {
+  try {
+    const raw = localStorage.getItem(LS_LAYOUT);
+    if (raw) return fromOverlay(JSON.parse(raw));
+  } catch (e) { /* 저장본이 깨졌으면 기본으로 */ }
+  return buildDefault();
+}
+function persist() {
+  const ov = toOverlay(TREE);
+  const changed = ov.removed.length || Object.keys(ov.over).length || Object.keys(ov.custom).length ||
+    JSON.stringify(ov.kidsOf) !== JSON.stringify(toOverlay(buildDefault()).kidsOf);
+  try {
+    if (changed) localStorage.setItem(LS_LAYOUT, JSON.stringify(ov));
+    else localStorage.removeItem(LS_LAYOUT);
+  } catch (e) { toast("이 브라우저에 저장하지 못했습니다 — JSON으로 내보내 주세요"); }
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+ * 3) 왼쪽 메뉴 + ERP 지도(본문) — 둘 다 TREE에서 그려진다
+ * ═════════════════════════════════════════════════════════════════════ */
+let COLOR = {};
+function computeColors() {
+  COLOR = {};
+  (function w(n, pc) { const c = n.c || pc; COLOR[n.id] = c; n.kids.forEach(k => w(k, c)); })(TREE, "#16324f");
+}
+const allItems = () => itemsOf(TREE);
+const itemById = (id) => { const n = findNode(TREE, id); return n && n.kind === "item" ? n : null; };
+const groupsOf = (sec) => sec.kids.filter(k => k.kind === "group");
+const cntOf = (items) => items.filter(i => i.st === "done").length + "/" + items.length;
+
+let fav = new Set(load("erp_fav", DEFAULT_FAV));
+let openGroups = new Set(load("erp_open", ["fav", "space", "comm", "gov", "tools", "common"]));
+let selected = null, query = "", curView = "map";
+
+function itemRow(it) {
+  const on = fav.has(it.id);
+  const own = it.c ? `style="box-shadow:inset 3px 0 0 ${it.c}"` : "";
+  return `<div class="mi ${it.st} ${selected === it.id ? "active" : ""}" data-id="${it.id}" title="${STATUS[it.st]}" ${own}>
+    <span class="d"></span><span class="n">${esc(it.t)}</span>
+    <button class="star ${on ? "on" : ""}" data-star="${it.id}" title="즐겨찾기">${on ? "★" : "☆"}</button>
+  </div>`;
+}
+function groupBlock(key, title, color, all, shown) {
+  const isOpen = query ? true : openGroups.has(key);
+  const chip = color ? `<span class="chip" style="background:${color}"></span>` : "";
+  return `<div class="grp ${isOpen ? "open" : ""}">
+    <div class="grp-head" data-group="${key}">
+      <span class="l">${chip}${esc(title)}<span class="cnt">${cntOf(all)}</span></span><span class="caret">▼</span>
+    </div>
+    <div class="grp-body">${shown.map(itemRow).join("") || `<div class="empty-note">등록된 화면이 없습니다</div>`}</div>
+  </div>`;
+}
+function renderMenu() {
+  const q = query.trim().toLowerCase();
+  const gTitle = {}; walk(TREE, n => { if (n.kind === "group") gTitle[n.id] = n.t; });
+  const groupOfItem = {}; walk(TREE, (n, p) => { if (n.kind === "item" && p) groupOfItem[n.id] = p.t; });
+  const match = (it) => !q || (it.t + " " + (it.fields || "") + " " + (groupOfItem[it.id] || "")).toLowerCase().includes(q);
+  let html = "";
+  const favAll = allItems().filter(i => fav.has(i.id));
+  html += groupBlock("fav", "즐겨찾기", null, favAll, favAll.filter(match));
+  TREE.kids.forEach(sec => {
+    let part = "";
+    groupsOf(sec).forEach(g => {
+      const all = g.kids.filter(k => k.kind === "item"), shown = all.filter(match);
+      if (q && !shown.length) return;
+      part += groupBlock(g.id, g.t, COLOR[g.id], all, shown);
+    });
+    if (part) html += `<div class="axis-label">${esc(sec.t)}</div>` + part;
+  });
+  if (q && !allItems().some(match)) html = `<div class="empty-note">"${esc(query)}"에 맞는 화면이 없습니다</div>`;
+  $("#menu").innerHTML = html;
+}
+function renderSummary() {
+  const c = countItems(TREE), total = c.done + c.wip + c.todo;
+  $("#map-summary").textContent = `완성 ${c.done} · 진행중 ${c.wip} · 미완성 ${c.todo}`;
+  $("#map-bar").style.width = (total ? Math.round(c.done / total * 100) : 0) + "%";
+}
+function cardHtml(it) {
+  let links = (it.links || []).map((l, i) =>
+    `<a class="${i ? "alt" : ""}" href="${l.href}" ${l.site ? "data-from-erp" : ""}>${esc(l.label)}</a>`).join("");
+  if (it.action === "editor") links = `<a href="#edit">편집기 열기</a>`;
+  if (it.action === "people") links = `<a href="#people">${esc(it.t)} 열기</a>`;
+  if (it.action === "datastatus") links = `<a href="#datastatus">${esc(it.t)} 열기</a>`;
+  if (it.action && it.action.indexOf("ledger-") === 0)   // 문의 대장·고객 대장: 지도 안에서 바로 열림(로그인 없음)
+    links = `<a href="#${it.action}">${esc(it.t)} 열기</a>` + (it.links || []).map(l => `<a class="alt" href="${l.href}">${esc(l.label)}</a>`).join("");
+  const note = it.note ? (it.custom ? esc(it.note) : it.note) : "";
+  return `<div class="card ${it.st}" id="card-${it.id}" style="border-left-color:${COLOR[it.id]}">
+    <div class="card-top"><span class="badge ${TYPE[it.type] ? it.type : "ledger"}">${TYPE[it.type] || TYPE.ledger}</span><span class="st ${it.st}">${STATUS[it.st] || STATUS.todo}</span></div>
+    <div class="name">${esc(it.t)}</div>
+    ${it.fields ? `<div class="fields">${esc(it.fields)}</div>` : ""}
+    ${note ? `<div class="subnote">${note}</div>` : ""}
+    ${links ? `<div class="card-links">${links}</div>` : ""}
+  </div>`;
+}
+function renderBoard() {
+  $("#board").innerHTML = TREE.kids.map(sec => `
+    <div class="axis-block">
+      <div class="axis-title"><span class="chip" style="background:${COLOR[sec.id]}"></span><h2>${esc(sec.t)}</h2>${sec.tag ? `<span class="tag ${sec.cls || ""}">${esc(sec.tag)}</span>` : ""}</div>
+      ${sec.desc ? `<p class="axis-desc">${esc(sec.desc)}</p>` : ""}
+    </div>
+    <div class="columns">
+      ${groupsOf(sec).map(g => {
+        const its = g.kids.filter(k => k.kind === "item");
+        return `<div class="column" id="col-${g.id}">
+          <div class="column-head" style="border-bottom-color:${COLOR[g.id]}"><h3>${esc(g.t)}</h3><span class="count">${cntOf(its)}</span></div>
+          ${its.map(cardHtml).join("")}
+        </div>`;
+      }).join("")}
+    </div>`).join("");
+}
+function renderAll() {
+  computeColors();
+  renderSummary(); renderMenu(); renderBoard();
+  if (curView === "edit") edRender();
+}
+
+/* ── 안내 · 이동 ── */
+let toastTimer;
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+function markFromErp() { try { sessionStorage.setItem("fromErp", "1"); } catch (e) {} }
+function focusCard(id) {
+  const el = document.getElementById("card-" + id); if (!el) return;
+  el.scrollIntoView({ behavior: "smooth", block: "center" });
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+const LEDGER_ITEM = { inq: "inquiry_ledger", cust: "customer_ledger" };
+function setLedgerTab(sub) {
+  $("#tab-inq").style.display = sub === "inq" ? "" : "none";
+  $("#tab-cust").style.display = sub === "cust" ? "" : "none";
+  document.querySelectorAll("[data-lgtab]").forEach(b => { b.classList.toggle("on", b.dataset.lgtab === sub); b.setAttribute("aria-selected", String(b.dataset.lgtab === sub)); });
+}
+function showView(v, sub) {
+  curView = v;
+  $("#view-map").style.display = v === "map" ? "" : "none";
+  $("#view-edit").style.display = v === "edit" ? "" : "none";
+  $("#view-ledger").style.display = v === "ledger" ? "" : "none";
+  $("#view-people").style.display = v === "people" ? "" : "none";
+  $("#view-datastatus").style.display = v === "datastatus" ? "" : "none";
+  if (v === "datastatus") {
+    selected = "data_status"; renderMenu();
+    if (typeof renderDataStatus === "function") renderDataStatus();
+  } else if (v === "people") {
+    selected = "roster"; renderMenu();
+    if (typeof renderRoster === "function") renderRoster();
+  } else if (v === "edit") {
+    selected = "map_edit"; renderMenu();
+    edRender(); edFit();
+    requestAnimationFrame(edFit);   // 화면 크기가 안정된 뒤 한 번 더 맞춤
+  } else if (v === "ledger") {
+    setLedgerTab(sub || "inq"); selected = LEDGER_ITEM[sub || "inq"]; renderMenu();
+  } else if (selected === "map_edit" || selected === "inquiry_ledger" || selected === "customer_ledger" || selected === "roster" || selected === "data_status") { selected = null; renderMenu(); }
+  window.scrollTo({ top: 0 });
+}
+function viewFromHash() {
+  const m = /^#ledger-(inq|cust)$/.exec(location.hash);
+  if (location.hash === "#datastatus") showView("datastatus");
+  else if (location.hash === "#people") showView("people");
+  else if (m) showView("ledger", m[1]); else showView(location.hash === "#edit" ? "edit" : "map");
+}
+function openLedger(sub) { showView("ledger", sub); try { const h = "#ledger-" + sub; if (location.hash !== h) history.replaceState(null, "", h); } catch (e) {} }
+function openDataStatus() { showView("datastatus"); try { if (location.hash !== "#datastatus") history.replaceState(null, "", "#datastatus"); } catch (e) {} }
+function openPeople() { showView("people"); try { if (location.hash !== "#people") history.replaceState(null, "", "#people"); } catch (e) {} }
+function openEditor() { if (location.hash !== "#edit") location.hash = "edit"; else showView("edit"); }
+function closeEditor() { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} showView("map"); }
+window.addEventListener("hashchange", viewFromHash);
+document.addEventListener("click", (e) => {   // 앱 미리보기처럼 주소(#)가 안 바뀌는 환경에서도 열리도록 직접 처리
+  const a = e.target.closest && e.target.closest('a[href^="#ledger-"]');
+  if (a) { e.preventDefault(); openLedger(a.getAttribute("href").slice(8)); }
+  const pa = e.target.closest && e.target.closest('a[href="#people"]');
+  if (pa) { e.preventDefault(); openPeople(); }
+  const da = e.target.closest && e.target.closest('a[href="#datastatus"]');
+  if (da) { e.preventDefault(); openDataStatus(); }
+});
+
+function openItem(id) {
+  const it = itemById(id); if (!it) return;
+  if (it.action === "editor") { openEditor(); return; }
+  if (it.action === "datastatus") { openDataStatus(); return; }
+  if (it.action === "people") { openPeople(); return; }
+  if (it.action && it.action.indexOf("ledger-") === 0) { openLedger(it.action.slice(7)); return; }
+  selected = id; renderMenu();
+  if (it.links && it.links.length) {
+    const l = it.links[0]; if (l.site) markFromErp();
+    location.href = l.href; return;
+  }
+  if (curView !== "map") { history.replaceState(null, "", location.pathname + location.search); showView("map"); }
+  focusCard(id);
+  toast(it.st === "wip" ? `'${it.t}' — 데이터 틀만 있고 관리 화면은 아직 없습니다`
+                        : `'${it.t}' — 아직 만들지 않은 화면입니다 (지도에서 위치만 표시했어요)`);
+}
+function toggleFav(id) { fav.has(id) ? fav.delete(id) : fav.add(id); save("erp_fav", [...fav]); renderMenu(); }
+function toggleGroup(key) { if (query) return; openGroups.has(key) ? openGroups.delete(key) : openGroups.add(key); save("erp_open", [...openGroups]); renderMenu(); }
+
+$("#menu").addEventListener("click", (e) => {
+  const star = e.target.closest("[data-star]");
+  if (star) { e.stopPropagation(); toggleFav(star.dataset.star); return; }
+  const gh = e.target.closest("[data-group]");
+  if (gh) { toggleGroup(gh.dataset.group); return; }
+  const mi = e.target.closest(".mi");
+  if (mi) openItem(mi.dataset.id);
+});
+$("#menu-search").addEventListener("input", (e) => { query = e.target.value; renderMenu(); });
+$("#map-card").addEventListener("click", (e) => { e.preventDefault(); selected = null; closeEditor(); renderMenu(); });
+$("#ed-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
+$("#lg-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
+$("#pp-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
+$("#ds-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
+document.querySelectorAll("[data-lgtab]").forEach(b => b.addEventListener("click", () => openLedger(b.dataset.lgtab)));
+document.addEventListener("click", (e) => { if (e.target.closest("[data-from-erp]")) markFromErp(); });
+
+/* ═════════════════════════════════════════════════════════════════════
+ * 4) ERP 지도 편집기 (마인드맵) — 더블클릭 = 이름, 끌기 = 자리, 클릭 = 색
+ *    구조: 중심 > 묶음(축) > 분류 > 칸.  묶음은 묶음끼리, 분류는 묶음 안에서, 칸은 분류 안에서만 옮겨진다.
+ * ═════════════════════════════════════════════════════════════════════ */
+const ROW_H = 30, V_GAP = 8, H_GAP = 46, ROOT_RX = 110, PADX = 15;
+const M_COLOR = { done: "#4a9d5f", wip: "#d69a2c", todo: "#8b95a1" };
+const KIND_LABEL = { root: "중심", section: "묶음", group: "분류", item: "칸" };
+
+let edSel = null, edLay = null, edById = {}, edView = { x: 0, y: 0, s: 1 };
+let edEditing = null, edDrop = null, edUndo = [], edRedo = [], edPan = null, edDrag = null, edSeq = 0, edLastDown = null;
+
+function newId() { edSeq += 1; return "n" + Date.now().toString(36) + edSeq; }
+function fontSizeOf(d) { return d === 0 ? 19 : d === 1 ? 14.5 : d === 2 ? 13.5 : 12.5; }
+function textWidth(s, fs) { let w = 0; for (let i = 0; i < s.length; i++) { const c = s.charCodeAt(i); w += c < 0x2000 ? fs * 0.57 : fs * 1.02; } return w; }
+function nodeHeight(d) { return d === 0 ? 74 : ROW_H; }
+function nodeWidth(n, depth) {
+  const fs = fontSizeOf(depth); let w = textWidth(n.t, fs) + PADX * 2;
+  if (depth === 0) w += 22;
+  else if (n.kind === "item") { if ((n.st || "todo") !== "done") w += 50; }
+  else w += 36;
+  return Math.max(w, depth === 0 ? 200 : 74);
+}
+const visibleKids = (n) => (n.fold ? [] : n.kids);
+
+function layoutTree(root) {
+  const nodes = [], edges = [], sh = {}, inherited = {};
+  function measure(n, depth) {
+    const h = nodeHeight(depth), ks = visibleKids(n); let v;
+    if (!ks.length) v = h + V_GAP;
+    else { let s = 0; ks.forEach(k => { s += measure(k, depth + 1); }); v = Math.max(s, h + V_GAP); }
+    sh[n.id] = v; return v;
+  }
+  function place(n, depth, side, connX, top, pc) {
+    const w = nodeWidth(n, depth), h = nodeHeight(depth), my = sh[n.id] || h + V_GAP;
+    const by = top + my / 2 - h / 2, cy = by + h / 2;
+    const bx = side === "R" ? connX : connX - w;
+    const color = n.c || pc; inherited[n.id] = color;
+    const inX = side === "R" ? bx : bx + w, outX = side === "R" ? bx + w : bx;
+    nodes.push({ id: n.id, t: n.t, kind: n.kind, st: n.st || "todo", depth, side, color, bx, by, w, h, inX, outX, cy,
+      hasKids: n.kids.length > 0, fold: !!n.fold, counts: countItems(n) });
+    const ks = visibleKids(n); if (!ks.length) return;
+    let sum = 0; ks.forEach(k => { sum += sh[k.id] || 0; });
+    let t = top + my / 2 - sum / 2;
+    ks.forEach(k => {
+      const cx = side === "R" ? outX + H_GAP : outX - H_GAP;
+      const at = nodes.length;
+      place(k, depth + 1, side, cx, t, color);
+      const tg = nodes[at], mx = (outX + tg.inX) / 2;
+      edges.push({ id: k.id, d: `M ${outX} ${cy} C ${mx} ${cy} ${mx} ${tg.cy} ${tg.inX} ${tg.cy}`, color: inherited[k.id] || color, depth: depth + 1 });
+      t += sh[k.id] || 0;
+    });
+  }
+  const kids = visibleKids(root);
+  const Ls = kids.filter(k => (k.side || "R") === "L"), Rs = kids.filter(k => (k.side || "R") === "R");
+  let hL = 0, hR = 0;
+  Ls.forEach(k => { hL += measure(k, 1); }); Rs.forEach(k => { hR += measure(k, 1); });
+  const rootH = nodeHeight(0), H = Math.max(hL, hR, rootH + V_GAP);
+  sh[root.id] = H;
+  const cy = H / 2, rootW = nodeWidth(root, 0);
+  inherited[root.id] = "#16324f";
+  nodes.push({ id: root.id, t: root.t, kind: "root", st: "done", depth: 0, side: null, color: "#16324f", bx: -rootW / 2, by: cy - rootH / 2, w: rootW, h: rootH,
+    inX: 0, outX: 0, cy, hasKids: root.kids.length > 0, fold: !!root.fold, counts: countItems(root) });
+  [[Ls, hL, "L", -1], [Rs, hR, "R", 1]].forEach(([arr, hh, side, dir]) => {
+    let t = cy - hh / 2;
+    arr.forEach(k => {
+      const at = nodes.length;
+      place(k, 1, side, dir * (ROOT_RX + H_GAP), t, "#16324f");
+      const tg = nodes[at], from = dir * ROOT_RX, mx = (from + tg.inX) / 2;
+      edges.push({ id: k.id, d: `M ${from} ${cy} C ${mx} ${cy} ${mx} ${tg.cy} ${tg.inX} ${tg.cy}`, color: tg.color, depth: 1 });
+      t += sh[k.id] || 0;
+    });
+  });
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  nodes.forEach(n => {
+    x0 = Math.min(x0, n.depth === 0 ? -ROOT_RX : n.bx); x1 = Math.max(x1, n.depth === 0 ? ROOT_RX : n.bx + n.w);
+    y0 = Math.min(y0, n.by); y1 = Math.max(y1, n.by + n.h);
+  });
+  return { nodes, edges, x0, y0, x1, y1 };
+}
+
+/* ── 그리기 ── */
+function edNodeSvg(n) {
+  const s = [], selectedNow = n.id === edSel;
+  if (n.depth === 0) {
+    s.push(`<g data-id="${n.id}" style="cursor:pointer">`);
+    s.push(`<ellipse cx="0" cy="${n.cy}" rx="${ROOT_RX}" ry="${n.h / 2}" fill="#16324f"/>`);
+    s.push(`<ellipse cx="0" cy="${n.cy}" rx="${ROOT_RX}" ry="${n.h / 2}" fill="none" stroke="${selectedNow ? "#2E75B6" : "#e8631c"}" stroke-width="${selectedNow ? 4 : 2.6}"/>`);
+    s.push(`<text x="0" y="${n.cy - 5}" text-anchor="middle" font-size="18" font-weight="800" fill="#fff" style="pointer-events:none">${esc(n.t)}</text>`);
+    s.push(`<text x="0" y="${n.cy + 15}" text-anchor="middle" font-size="11" font-weight="700" fill="#f0c89a" style="pointer-events:none">완성 ${n.counts.done} · 진행중 ${n.counts.wip} · 미완성 ${n.counts.todo}</text>`);
+    s.push("</g>"); return s.join("");
+  }
+  const fs = fontSizeOf(n.depth), right = n.side === "R";
+  const tx = right ? n.bx + PADX : n.bx + n.w - PADX, ex = right ? n.bx + n.w - 10 : n.bx + 10;
+  const isSec = n.kind === "section", isGrp = n.kind === "group";
+  const stroke = selectedNow ? "#2E75B6" : n.color, sw = selectedNow ? 3.4 : (isSec ? 0 : 1.6);
+  s.push(`<g data-id="${n.id}" style="cursor:pointer">`);
+  if (isSec) s.push(`<rect x="${n.bx}" y="${n.by}" width="${n.w}" height="${n.h}" rx="${n.h / 2}" fill="${n.color}" stroke="${stroke}" stroke-width="${sw}"/>`);
+  else if (isGrp) s.push(`<rect x="${n.bx}" y="${n.by}" width="${n.w}" height="${n.h}" rx="${n.h / 2}" fill="${n.color}" fill-opacity="0.13" stroke="${stroke}" stroke-width="${sw}"/>`);
+  else s.push(`<rect x="${n.bx}" y="${n.by}" width="${n.w}" height="${n.h}" rx="${n.h / 2}" fill="#fff" stroke="${stroke}" stroke-width="${sw}"/>`);
+  const fill = isSec ? "#fff" : isGrp ? "#1f2a37" : (n.st === "done" ? "#243140" : n.st === "wip" ? "#8a6320" : "#7a848f");
+  s.push(`<text x="${tx}" y="${n.cy + fs * 0.36}" text-anchor="${right ? "start" : "end"}" font-size="${fs}" font-weight="${n.kind === "item" ? (n.st === "done" ? 600 : 700) : 800}" fill="${fill}" style="pointer-events:none">${esc(n.t)}</text>`);
+  if (isSec || isGrp) {
+    const tot = n.counts.done + n.counts.wip + n.counts.todo;
+    s.push(`<text x="${ex}" y="${n.cy + 4}" text-anchor="${right ? "end" : "start"}" font-size="10.5" font-weight="700" fill="${isSec ? "#fff" : "#4a5560"}" opacity="0.7" style="pointer-events:none">${n.counts.done}/${tot}</text>`);
+  } else if (n.st !== "done") {
+    const badge = n.st === "wip" ? "진행중" : "미완성", bw = 39, bx = right ? ex - bw : ex;
+    s.push(`<rect x="${bx}" y="${n.cy - 8.5}" width="${bw}" height="17" rx="4.5" fill="${M_COLOR[n.st]}" opacity="0.17" style="pointer-events:none"/>`);
+    s.push(`<text x="${bx + bw / 2}" y="${n.cy + 4}" text-anchor="middle" font-size="10.5" font-weight="800" fill="${M_COLOR[n.st]}" style="pointer-events:none">${badge}</text>`);
+  }
+  if (n.hasKids) {
+    const fx = n.outX + (right ? 10 : -10);
+    s.push(`<g data-fold="${n.id}" style="cursor:pointer"><circle cx="${fx}" cy="${n.cy}" r="8" fill="#fff" stroke="${n.color}" stroke-width="1.6"/>` +
+      `<line x1="${fx - 4}" y1="${n.cy}" x2="${fx + 4}" y2="${n.cy}" stroke="${n.color}" stroke-width="1.8" stroke-linecap="round"/>` +
+      (n.fold ? `<line x1="${fx}" y1="${n.cy - 4}" x2="${fx}" y2="${n.cy + 4}" stroke="${n.color}" stroke-width="1.8" stroke-linecap="round"/>` : "") + "</g>");
+  }
+  s.push("</g>"); return s.join("");
+}
+function edDropSvg() {
+  if (!edDrop) return ""; const n = edById[edDrop.id]; if (!n) return "";
+  const x0 = n.depth === 0 ? -ROOT_RX : n.bx, w = n.depth === 0 ? ROOT_RX * 2 : n.w;
+  if (edDrop.mode === "child")
+    return `<rect data-hint="1" x="${x0 - 3}" y="${n.by - 3}" width="${w + 6}" height="${n.h + 6}" rx="${(n.h + 6) / 2}" fill="none" stroke="#2E75B6" stroke-width="3" stroke-dasharray="7 4"/>`;
+  const y = edDrop.mode === "before" ? n.by - 3 : n.by + n.h + 3;
+  return `<g data-hint="1"><line x1="${x0}" y1="${y}" x2="${x0 + w}" y2="${y}" stroke="#2E75B6" stroke-width="3.4" stroke-linecap="round"/><circle cx="${x0}" cy="${y}" r="4.5" fill="#2E75B6"/></g>`;
+}
+function edDraw() {
+  const vp = $("#ed-vp"); if (!vp || !edLay) return;
+  const h = [];
+  edLay.edges.forEach(e => h.push(`<path d="${e.d}" fill="none" stroke="${e.color}" stroke-width="${e.depth === 1 ? 3.4 : e.depth === 2 ? 2 : 1.3}" opacity="${e.depth === 1 ? 0.8 : 0.45}" stroke-linecap="round"/>`));
+  edLay.nodes.forEach(n => h.push(edNodeSvg(n)));
+  h.push(edDropSvg());
+  vp.innerHTML = h.join("");
+}
+function edProps() {
+  const box = $("#ed-props"); if (!box) return;
+  const tot = countItems(TREE), n = edSel ? findNode(TREE, edSel) : null;
+  let h = `<h4>진척</h4><div class="mini">` +
+    ["done", "wip", "todo"].map(s => `<div><div class="v" style="color:${M_COLOR[s]}">${tot[s]}</div><div class="k">${STATUS[s]}</div></div>`).join("") + `</div><h4>선택한 칸</h4>`;
+  if (!n) h += `<div class="note">칸을 누르면 이름·상태·색을 고칠 수 있습니다.</div>`;
+  else {
+    h += `<div class="fld"><label>이름</label><input id="ed-name" type="text" value="${esc(n.t)}"></div>`;
+    if (n.kind === "item") {
+      h += `<div class="fld"><label>완성 상태</label><div class="seg">` + ["done", "wip", "todo"].map(s => {
+        const on = (n.st || "todo") === s;
+        return `<button data-status="${s}" style="${on ? `background:${M_COLOR[s]};color:#fff;border-color:${M_COLOR[s]}` : ""}">${STATUS[s]}</button>`;
+      }).join("") + `</div></div>`;
+      if (n.links && n.links.length) h += `<div class="fld"><label>연결된 화면(그대로 유지됨)</label>` + n.links.map(l => `<div><code>${esc(l.href)}</code></div>`).join("") + `</div>`;
+      else if (n.action === "editor") h += `<div class="fld"><label>연결</label><div>이 편집기 화면</div></div>`;
+    }
+    if (n.id !== TREE.id) {
+      h += `<div class="fld"><label>색 <span style="font-weight:500">(눌러서 바꾸기)</span></label><div class="pal">` +
+        PALETTE.map(p => `<button data-color="${p}" style="background:${p}" class="${n.c === p ? "on" : ""}" aria-label="색"></button>`).join("") +
+        `<button class="reset" data-color="">기본색</button></div></div>`;
+    }
+    const ld = edById[n.id];
+    h += `<div class="hint" style="color:#a9b1b8">${KIND_LABEL[n.kind]} · 하위 ${n.kids.length}개${ld && ld.depth === 1 ? " · " + (n.side === "L" ? "왼쪽" : "오른쪽") : ""}</div>`;
+  }
+  h += `<h4 class="mt">조작법</h4><div class="hint">` +
+    `<div><b class="k">더블클릭</b> 이름 바꾸기 (<b class="k">F2</b>)</div>` +
+    `<div><b class="k">끌기</b> 칸을 다른 칸 위/아래에 놓으면 순서, 가운데에 놓으면 그 아래로 이동</div>` +
+    `<div><b class="k">클릭</b> 선택 → 색 고르기</div>` +
+    `<div><b class="k">Tab</b> 하위 추가 · <b class="k">↵</b> 같은 단계</div>` +
+    `<div><b class="k">Del</b> 삭제 · <b class="k">Ctrl</b>+<b class="k">Z</b> 되돌리기</div>` +
+    `<div><b class="k">휠</b> 확대·축소 · 빈 곳 끌기 = 화면 이동</div></div>`;
+  box.innerHTML = h;
+  const ni = $("#ed-name");
+  if (ni) {
+    ni.onblur = function () { edRename(n.id, this.value); };
+    ni.onkeydown = function (e) { if (e.key === "Enter") this.blur(); e.stopPropagation(); };
+  }
+  $("#ed-undo").disabled = !edUndo.length; $("#ed-redo").disabled = !edRedo.length;
+}
+function edRender() {
+  edLay = layoutTree(TREE);
+  edById = {}; edLay.nodes.forEach(n => { edById[n.id] = n; });
+  if (edSel && !edById[edSel]) edSel = null;
+  edDraw(); edProps(); edApplyView();
+}
+
+/* ── 화면 이동·확대 ── */
+const edCv = () => $("#ed-canvas");
+function edFit() {
+  const el = edCv(); if (!el || !edLay) return; const r = el.getBoundingClientRect(); if (r.width < 10) return;
+  const m = 44, w = (edLay.x1 - edLay.x0) || 1, h = (edLay.y1 - edLay.y0) || 1;
+  const s = Math.max(Math.min((r.width - m * 2) / w, (r.height - m * 2) / h, 1.6), 0.18);
+  edView = { s, x: r.width / 2 - ((edLay.x0 + edLay.x1) / 2) * s, y: r.height / 2 - ((edLay.y0 + edLay.y1) / 2) * s };
+  edApplyView();
+}
+function edZoomBy(f) {
+  const el = edCv(); if (!el) return; const r = el.getBoundingClientRect();
+  const ns = Math.max(0.18, Math.min(3, edView.s * f)), mx = r.width / 2, my = r.height / 2;
+  edView = { s: ns, x: mx - (mx - edView.x) * (ns / edView.s), y: my - (my - edView.y) * (ns / edView.s) };
+  edApplyView();
+}
+function edApplyView() {
+  const vp = $("#ed-vp"); if (!vp) return;
+  vp.setAttribute("transform", `translate(${edView.x},${edView.y}) scale(${edView.s})`);
+  $("#ed-zpc").textContent = Math.round(edView.s * 100) + "%";
+  if (edEditing) edPlaceEditor();
+  edPlaceSwatch();
+}
+function edToWorld(cx, cy) { const r = edCv().getBoundingClientRect(); return { x: (cx - r.left - edView.x) / edView.s, y: (cy - r.top - edView.y) / edView.s }; }
+
+/* ── 고치기(모든 변경은 mutate를 거친다: 되돌리기·저장·화면 갱신) ── */
+function mutate(fn) {
+  const snap = JSON.stringify(TREE), next = JSON.parse(snap);
+  const res = fn(next);
+  if (res === false) return;
+  edUndo.push(snap); if (edUndo.length > 60) edUndo.shift();
+  edRedo.length = 0;
+  TREE = next; persist(); renderAll();
+  if (typeof res === "string") toast(res);
+}
+function edApplySnapshot(snap) { TREE = JSON.parse(snap); persist(); renderAll(); }
+function edDoUndo() { const j = edUndo.pop(); if (!j) return; edRedo.push(JSON.stringify(TREE)); edApplySnapshot(j); toast("되돌렸습니다"); }
+function edDoRedo() { const j = edRedo.pop(); if (!j) return; edUndo.push(JSON.stringify(TREE)); edApplySnapshot(j); toast("다시 실행"); }
+
+function edRename(id, v) {
+  const val = (v || "").trim(); if (!val) return;
+  const cur = findNode(TREE, id); if (!cur || cur.t === val) return;
+  mutate(t => { const n = findNode(t, id); if (!n) return false; n.t = val.slice(0, 60); return `이름을 「${n.t}」(으)로 바꿨습니다`; });
+}
+function edSetColor(c) {
+  if (!edSel || edSel === TREE.id) return;
+  mutate(t => { const n = findNode(t, edSel); if (!n) return false; n.c = c || null; return c ? "색을 바꿨습니다" : "기본색으로 돌렸습니다"; });
+}
+function edSetStatus(st) {
+  if (!edSel) return;
+  mutate(t => { const n = findNode(t, edSel); if (!n || n.kind !== "item") return false; if (n.st === st) return false; n.st = st; return `「${n.t}」 상태: ${STATUS[st]}`; });
+}
+function edToggleFold(id) {
+  const target = id || edSel; if (!target) return;
+  mutate(t => { const n = findNode(t, target); if (!n || !n.kids.length) return false; n.fold = !n.fold; });
+}
+function edFlip() {
+  if (!edSel) { toast("먼저 묶음 칸을 선택하세요"); return; }
+  let topId = edSel, g = findNode(TREE, edSel);
+  while (g) { const p = parentOf(TREE, g.id); if (!p) break; if (p.id === TREE.id) { topId = g.id; break; } g = p; }
+  if (topId === TREE.id) { toast("중심 칸은 좌우가 없습니다"); return; }
+  mutate(t => { const n = findNode(t, topId); if (!n) return false; n.side = n.side === "L" ? "R" : "L"; return `「${n.t}」를 ${n.side === "L" ? "왼쪽" : "오른쪽"}으로 옮겼습니다`; });
+}
+const CHILD_KIND = { root: "section", section: "group", group: "item" };
+function edNewNode(kind) {
+  const base = { id: newId(), kind, kids: [], custom: true, c: null };
+  if (kind === "section") return Object.assign(base, { t: "새 묶음", tag: "", desc: "", cls: "", c: PALETTE[edSeq % PALETTE.length] });
+  if (kind === "group") return Object.assign(base, { t: "새 분류" });
+  return Object.assign(base, { t: "새 칸", st: "todo", type: "ledger", fields: "", note: "", links: [] });
+}
+function edAddChild(startEdit) {
+  const targetId = edSel || TREE.id; let newIdVal = null, blocked = null;
+  mutate(t => {
+    const p = findNode(t, targetId) || t;
+    const kind = CHILD_KIND[p.kind]; if (!kind) { blocked = "「칸」 아래에는 더 넣을 수 없습니다 — 같은 단계로 추가해 주세요"; return false; }
+    p.fold = false;
+    const k = edNewNode(kind);
+    if (p.id === t.id) { let l = 0, r = 0; p.kids.forEach(c => { if ((c.side || "R") === "L") l++; else r++; }); k.side = l <= r ? "L" : "R"; }
+    p.kids.push(k); newIdVal = k.id;
+  });
+  if (blocked) toast(blocked);
+  if (newIdVal) { edSel = newIdVal; edRender(); if (startEdit !== false) edBeginEdit(newIdVal); }
+}
+function edAddSibling() {
+  if (!edSel || edSel === TREE.id) { edAddChild(); return; }
+  let newIdVal = null;
+  mutate(t => {
+    const n = findNode(t, edSel), p = n ? parentOf(t, edSel) : null; if (!n || !p) return false;
+    const k = edNewNode(n.kind);
+    if (p.id === t.id) k.side = n.side;
+    p.kids.splice(p.kids.indexOf(n) + 1, 0, k); newIdVal = k.id;
+  });
+  if (newIdVal) { edSel = newIdVal; edRender(); edBeginEdit(newIdVal); }
+}
+function edRemove() {
+  if (!edSel) { toast("먼저 칸을 선택하세요"); return; }
+  if (edSel === TREE.id) { toast("중심 칸은 지울 수 없습니다"); return; }
+  const node = findNode(TREE, edSel); if (!node) return;
+  if (containsId(node, "map_edit")) { toast("「ERP 지도 편집」은 이 화면으로 들어오는 문이라 지울 수 없습니다"); return; }
+  let cnt = 0; walk(node, () => { cnt++; });
+  if (cnt > 1 && !confirm(`「${node.t}」 아래 ${cnt - 1}개 칸까지 함께 지웁니다. 계속할까요?`)) return;
+  let nextSel = null;
+  mutate(t => {
+    const n = findNode(t, edSel), p = n ? parentOf(t, edSel) : null; if (!n || !p) return false;
+    const i = p.kids.indexOf(n); p.kids.splice(i, 1);
+    nextSel = (p.kids[i] || p.kids[i - 1] || p).id;
+    return `「${n.t}」을(를) 지웠습니다 (↶ 로 되돌릴 수 있어요)`;
+  });
+  edSel = nextSel; edRender();
+}
+
+/* 끌어 놓기 — 종류가 맞는 자리에만 놓인다 */
+function edCanDrop(mover, target, mode) {
+  if (mode === "child") {
+    if (mover.kind === "section") return target.kind === "root";
+    if (mover.kind === "group") return target.kind === "section";
+    if (mover.kind === "item") return target.kind === "group";
+    return false;
+  }
+  return mover.kind === target.kind && target.kind !== "root";
+}
+function edApplyDrop(movingId, hit) {
+  if (movingId === hit.id) return;
+  mutate(t => {
+    const n = findNode(t, movingId), target = findNode(t, hit.id); if (!n || !target) return false;
+    const oldP = parentOf(t, movingId), newP = hit.mode === "child" ? target : parentOf(t, hit.id);
+    if (!oldP || !newP || containsId(n, newP.id)) return false;
+    oldP.kids.splice(oldP.kids.indexOf(n), 1);
+    if (hit.mode === "child") { target.fold = false; target.kids.push(n); }
+    else { const i = newP.kids.indexOf(target) + (hit.mode === "after" ? 1 : 0); newP.kids.splice(i, 0, n); }
+    if (newP.id === t.id) {
+      if (hit.mode !== "child" && target.side) n.side = target.side;
+      else if (!n.side) { let l = 0, r = 0; t.kids.forEach(c => { if (c.id === n.id) return; if ((c.side || "R") === "L") l++; else r++; }); n.side = l <= r ? "L" : "R"; }
+    } else n.side = null;
+    return hit.mode === "child" ? `「${n.t}」를 「${target.t}」 아래로 옮겼습니다` : `「${n.t}」 순서를 바꿨습니다`;
+  });
+}
+
+/* ── 이름 고치기 입력창 ── */
+function edBeginEdit(id) {
+  const n = findNode(TREE, id); if (!n) return;
+  edSel = id; edEditing = id; edProps(); edDraw();
+  const i = $("#ed-edit"); i.value = n.t; i.style.display = "block"; edPlaceEditor();
+  setTimeout(() => { i.focus(); i.select(); }, 0);
+}
+function edPlaceEditor() {
+  const i = $("#ed-edit"), ld = edEditing ? edById[edEditing] : null; if (!i || !ld) return;
+  const bx = ld.depth === 0 ? -ROOT_RX : ld.bx, w = ld.depth === 0 ? ROOT_RX * 2 : ld.w;
+  i.style.left = (bx * edView.s + edView.x - 2) + "px"; i.style.top = (ld.by * edView.s + edView.y - 2) + "px";
+  i.style.width = (Math.max(w * edView.s, 130) + 4) + "px"; i.style.height = (ld.h * edView.s + 4) + "px";
+  i.style.fontSize = Math.max(fontSizeOf(ld.depth) * edView.s, 12) + "px";
+}
+function edCommit(ok) {
+  const i = $("#ed-edit"); if (!edEditing || !i) return;
+  const id = edEditing, v = i.value; edEditing = null; i.style.display = "none";
+  if (ok !== false) edRename(id, v);
+}
+$("#ed-edit").addEventListener("keydown", (e) => {
+  e.stopPropagation();
+  if (e.key === "Enter") {
+    e.preventDefault();
+    // 한글을 치는 중에 누른 Enter는 글자 조합이 끝난 뒤에 확정해야 마지막 글자가 빠지지 않는다
+    if (e.isComposing || e.keyCode === 229) setTimeout(() => edCommit(true), 40); else edCommit(true);
+  }
+  else if (e.key === "Escape") { e.preventDefault(); edCommit(false); }
+});
+$("#ed-edit").addEventListener("blur", () => edCommit(true));
+
+/* ── 선택한 칸 옆에 뜨는 색 고르개 ── */
+(function () {
+  $("#ed-swatch").innerHTML = PALETTE.map(p => `<button data-color="${p}" style="background:${p}" aria-label="색 ${p}"></button>`).join("") + `<button class="reset" data-color="">기본</button>`;
+  $("#ed-swatch").addEventListener("click", (e) => { const b = e.target.closest("[data-color]"); if (b) edSetColor(b.dataset.color); });
+})();
+function edPlaceSwatch() {
+  const el = $("#ed-swatch"), ld = edSel ? edById[edSel] : null;
+  if (!el) return;
+  if (!ld || edSel === TREE.id || edEditing || (edDrag && edDrag.live) || curView !== "edit") { el.style.display = "none"; return; }
+  const bx = ld.bx * edView.s + edView.x, by = (ld.by + ld.h) * edView.s + edView.y + 8;
+  el.style.display = "flex";
+  const r = edCv().getBoundingClientRect();
+  el.style.left = Math.max(6, Math.min(bx, r.width - el.offsetWidth - 6)) + "px";
+  el.style.top = Math.max(6, Math.min(by, r.height - el.offsetHeight - 6)) + "px";
+}
+
+/* ── 오른쪽 클릭 메뉴 ── */
+function edHideMenu() { $("#ed-menu").style.display = "none"; }
+function edShowMenu(x, y) {
+  const n = edSel ? findNode(TREE, edSel) : null; if (!n) return;
+  let h = "";
+  if (CHILD_KIND[n.kind]) h += `<button data-act="child">＋ 하위 칸 (Tab)</button>`;
+  if (n.id !== TREE.id) h += `<button data-act="sib">＋ 같은 단계 (Enter)</button>`;
+  h += `<button data-act="rename">이름 바꾸기 (F2)</button>`;
+  if (n.kids.length) h += `<button data-act="fold">접기 / 펴기</button>`;
+  if (n.kind === "section") h += `<button data-act="flip">⇄ 좌우 옮기기</button>`;
+  if (n.id !== TREE.id) {
+    h += `<div class="hr"></div><div class="sw">` + PALETTE.map(p => `<button data-color="${p}" style="background:${p}" aria-label="색"></button>`).join("") + `<button class="reset" data-color="">기본</button></div><div class="hr"></div><button class="dg" data-act="del">삭제 (Del)</button>`;
+  }
+  const m = $("#ed-menu"), r = edCv().getBoundingClientRect();
+  m.innerHTML = h; m.style.display = "block";
+  m.style.left = Math.max(4, Math.min(x, r.width - m.offsetWidth - 4)) + "px";
+  m.style.top = Math.max(4, Math.min(y, r.height - m.offsetHeight - 4)) + "px";
+}
+$("#ed-menu").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-color]");
+  if (c) { edSetColor(c.dataset.color); edHideMenu(); return; }
+  const b = e.target.closest("[data-act]"); if (!b) return;
+  edHideMenu();
+  ({ child: () => edAddChild(), sib: edAddSibling, rename: () => edSel && edBeginEdit(edSel), fold: () => edToggleFold(), flip: edFlip, del: edRemove })[b.dataset.act]();
+});
+
+/* ── 마우스 · 키보드 ── */
+function edHit(e) {
+  let t = e.target; const svg = $("#ed-svg");
+  while (t && t !== svg) {
+    if (t.getAttribute) { const f = t.getAttribute("data-fold"); if (f) return { fold: f }; const i = t.getAttribute("data-id"); if (i) return { id: i }; }
+    t = t.parentElement;
+  }
+  return null;
+}
+(function bindCanvas() {
+  const el = edCv();
+  el.addEventListener("mousedown", (e) => {
+    if (e.button === 2) return;
+    if (e.target.closest("#ed-swatch,#ed-menu,.ed-zoom,#ed-edit")) return;
+    edHideMenu(); if (edEditing) edCommit(true);
+    const h = edHit(e);
+    if (h && h.fold) { edToggleFold(h.fold); return; }
+    if (h && h.id) {
+      // 클릭할 때마다 지도를 다시 그리므로 브라우저의 dblclick 이 끊길 수 있다 → 같은 칸을 0.4초 안에 두 번 누르면 직접 "더블클릭"으로 본다
+      const now = Date.now();
+      if (edLastDown && edLastDown.id === h.id && now - edLastDown.t < 400) {
+        edLastDown = null; e.preventDefault(); edBeginEdit(h.id); return;
+      }
+      edLastDown = { id: h.id, t: now };
+      edSel = h.id; edProps(); edDraw(); edPlaceSwatch();
+      if (h.id !== TREE.id) edDrag = { id: h.id, x: e.clientX, y: e.clientY, live: false };
+      e.preventDefault(); return;
+    }
+    edPan = { x: e.clientX, y: e.clientY, vx: edView.x, vy: edView.y, moved: false };
+    el.classList.add("drag");
+  });
+  el.addEventListener("dblclick", (e) => { const h = edHit(e); if (h && h.id) edBeginEdit(h.id); });
+  el.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    const h = edHit(e); if (!h || !h.id) return;
+    edSel = h.id; edProps(); edDraw(); edPlaceSwatch();
+    const r = el.getBoundingClientRect(); edShowMenu(e.clientX - r.left, e.clientY - r.top);
+  });
+  el.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const r = el.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+    const f = e.deltaY < 0 ? 1.12 : 1 / 1.12, ns = Math.max(0.18, Math.min(3, edView.s * f));
+    edView = { s: ns, x: mx - (mx - edView.x) * (ns / edView.s), y: my - (my - edView.y) * (ns / edView.s) };
+    edApplyView();
+  }, { passive: false });
+})();
+window.addEventListener("mousemove", (e) => {
+  if (edPan) {
+    const dx = e.clientX - edPan.x, dy = e.clientY - edPan.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) edPan.moved = true;
+    edView.x = edPan.vx + dx; edView.y = edPan.vy + dy; edApplyView(); return;
+  }
+  if (!edDrag || !edLay) return;
+  if (!edDrag.live && Math.abs(e.clientX - edDrag.x) + Math.abs(e.clientY - edDrag.y) < 5) return;
+  if (!edDrag.live) { edDrag.live = true; edPlaceSwatch(); }
+  const w = edToWorld(e.clientX, e.clientY), mover = findNode(TREE, edDrag.id); let best = null;
+  edLay.nodes.forEach(n => {
+    if (n.id === edDrag.id) return;
+    const x0 = n.depth === 0 ? -ROOT_RX : n.bx, x1 = n.depth === 0 ? ROOT_RX : n.bx + n.w;
+    if (w.x < x0 - 12 || w.x > x1 + 12 || w.y < n.by - 10 || w.y > n.by + n.h + 10) return;
+    const target = findNode(TREE, n.id); if (!target || !mover) return;
+    let mode = "child";
+    if (n.depth > 0) { if (w.y < n.by + n.h * 0.28) mode = "before"; else if (w.y > n.by + n.h * 0.72) mode = "after"; }
+    if (!edCanDrop(mover, target, mode)) {
+      if (mover.kind === target.kind && target.kind !== "root") mode = w.y < n.by + n.h / 2 ? "before" : "after";
+      else return;
+    }
+    best = { id: n.id, mode };
+  });
+  edDrop = best; edDraw();
+});
+window.addEventListener("mouseup", () => {
+  if (edPan) {
+    const moved = edPan.moved; edPan = null; edCv().classList.remove("drag");
+    if (!moved && edSel) { edSel = null; edProps(); edDraw(); edPlaceSwatch(); }
+  }
+  const d = edDrag; edDrag = null;
+  if (d && d.live) {
+    if (edDrop) edApplyDrop(d.id, edDrop);
+    else toast("놓을 자리를 찾지 못했습니다 — 같은 종류의 칸 위, 또는 그 칸이 속할 위쪽 칸 위에 놓아주세요");
+  }
+  if (edDrop) { edDrop = null; edDraw(); }
+  if (d) edPlaceSwatch();
+});
+window.addEventListener("keydown", (e) => {
+  if (curView !== "edit") return;
+  const ae = document.activeElement;
+  if (ae && /INPUT|TEXTAREA|SELECT/.test(ae.tagName)) return;
+  if ($("#modal").classList.contains("on")) return;
+  const mod = e.ctrlKey || e.metaKey;
+  if (mod && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? edDoRedo() : edDoUndo(); return; }
+  if (mod && e.key.toLowerCase() === "y") { e.preventDefault(); edDoRedo(); return; }
+  if (e.key === "Tab") { e.preventDefault(); edAddChild(); return; }
+  if (e.key === "Enter") { e.preventDefault(); edAddSibling(); return; }
+  if (e.key === "F2") { e.preventDefault(); if (edSel) edBeginEdit(edSel); return; }
+  if (e.key === "Delete") { e.preventDefault(); edRemove(); return; }
+  if (e.key === "Escape") { edHideMenu(); }
+});
+
+/* ── 도구 막대 · 속성창 · 확대 버튼 ── */
+document.querySelector(".ed-tools").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-tb]"); if (!b) return;
+  ({ child: () => edAddChild(), sib: edAddSibling, del: edRemove, undo: edDoUndo, redo: edDoRedo, flip: edFlip,
+     fold: () => edToggleFold(), fit: edFit, json: edOpenJson, png: edExportPng, reset: edResetAll })[b.dataset.tb]();
+});
+$("#ed-props").addEventListener("click", (e) => {
+  const s = e.target.closest("[data-status]"); if (s) { edSetStatus(s.dataset.status); return; }
+  const c = e.target.closest("[data-color]"); if (c) edSetColor(c.dataset.color);
+});
+document.querySelector(".ed-zoom").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-zoom]"); if (!b) return;
+  ({ out: () => edZoomBy(1 / 1.18), in: () => edZoomBy(1.18), fit: edFit })[b.dataset.zoom]();
+});
+
+/* ── 원래대로 · JSON · PNG ── */
+function edResetAll() {
+  if (!confirm("코드에 적힌 처음 모습으로 되돌립니다.\n고친 이름·자리·색·추가한 칸이 모두 사라집니다. 계속할까요?")) return;
+  const snap = JSON.stringify(TREE); edUndo.push(snap); edRedo.length = 0;
+  TREE = buildDefault(); edSel = null; persist(); renderAll(); edFit(); toast("처음 모습으로 되돌렸습니다 (↶ 로 되살릴 수 있어요)");
+}
+function edOpenJson() {
+  $("#m-text").value = JSON.stringify(toOverlay(TREE), null, 2);
+  $("#modal").classList.add("on");
+}
+$("#m-close").addEventListener("click", () => $("#modal").classList.remove("on"));
+$("#m-copy").addEventListener("click", () => {
+  const t = $("#m-text");
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t.value).then(() => toast("복사했습니다"), () => { t.select(); toast("Ctrl+C 를 눌러주세요"); });
+  else { t.select(); toast("Ctrl+C 를 눌러주세요"); }
+});
+$("#m-apply").addEventListener("click", () => {
+  try {
+    const ov = JSON.parse($("#m-text").value);
+    const next = fromOverlay(ov);
+    edUndo.push(JSON.stringify(TREE)); edRedo.length = 0;
+    TREE = next; edSel = null; persist(); $("#modal").classList.remove("on"); renderAll(); edFit(); toast("불러왔습니다");
+  } catch (err) { alert("JSON 을 읽을 수 없습니다.\n\n" + err.message); }
+});
+function edExportPng() {
+  const svg = $("#ed-svg"); if (!svg || !edLay) return;
+  const m = 34, Wd = Math.ceil(edLay.x1 - edLay.x0 + m * 2), Ht = Math.ceil(edLay.y1 - edLay.y0 + m * 2);
+  const clone = svg.cloneNode(true);
+  const hint = clone.querySelector("[data-hint]"); if (hint) hint.remove();
+  const vp = clone.querySelector("[data-vp]");
+  if (vp) vp.setAttribute("transform", `translate(${m - edLay.x0},${m - edLay.y0}) scale(1)`);
+  clone.setAttribute("width", Wd); clone.setAttribute("height", Ht); clone.setAttribute("viewBox", `0 0 ${Wd} ${Ht}`);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg"); clone.setAttribute("font-family", "맑은 고딕, Malgun Gothic, sans-serif");
+  const bg = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  bg.setAttribute("width", Wd); bg.setAttribute("height", Ht); bg.setAttribute("fill", "#faf6f0"); clone.insertBefore(bg, clone.firstChild);
+  const xml = new XMLSerializer().serializeToString(clone), img = new Image();
+  img.onload = () => {
+    const cn = document.createElement("canvas"); cn.width = Wd * 2; cn.height = Ht * 2;
+    const ctx = cn.getContext("2d"); ctx.setTransform(2, 0, 0, 2, 0, 0); ctx.drawImage(img, 0, 0);
+    cn.toBlob(b => {
+      if (!b) { toast("PNG 변환 실패 — 화면을 캡처해 주세요"); return; }
+      const a = document.createElement("a"); a.href = URL.createObjectURL(b); a.download = "ERP지도.png"; a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000); toast("PNG 를 내려받았습니다");
+    }, "image/png");
+  };
+  img.onerror = () => toast("PNG 변환 실패 — 화면을 캡처해 주세요");
+  img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(xml);
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+ * 5) 시작
+ * ═════════════════════════════════════════════════════════════════════ */
+TREE = loadTree();
+renderAll();
+viewFromHash();
+</script>
+<script>
+/* 사람 명부 + 노무 상태 배지 (연습용) — 기혁스 3기 6회차 ④ STEP A·B.
+   · 가상 직원만. 실제 직원 이름·월급은 넣지 않는다. 월급 칸은 없다.
+   · 저장: 이 컴퓨터 브라우저(localStorage). 못 쓰는 환경(앱 미리보기 등)에서도 화면은 동작한다(새로고침하면 사라짐).
+   · 비어 있는 칸은 「없음」이 아니라 「모름」. 배지는 「확인 필요」까지만 — 합법/위법 판단은 하지 않는다. */
+(function () {
+  const KEY_ROWS = "company_people_v1", KEY_SET = "company_settings_v1";
+  const E = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const SAMPLE = () => [
+    { id: 1, name: "가상직원A", dept: "영업", type: "정함 없음", hours: 40, end: "",           paper: "작성", delivered: "2026-08-01" },
+    { id: 2, name: "가상직원B", dept: "생산", type: "정함 없음", hours: 40, end: "",           paper: "작성", delivered: "" },
+    { id: 3, name: "가상직원C", dept: "생산", type: "계약직",   hours: 40, end: "2026-09-30", paper: "작성", delivered: "2026-04-01" },
+    { id: 4, name: "가상직원D", dept: "사무", type: "단시간",   hours: 20, end: "2027-02-28", paper: "작성", delivered: "2026-03-02" },
+    { id: 5, name: "가상직원E", dept: "현장", type: "정함 없음", hours: 40, end: "",           paper: "없음", delivered: "" },
+  ];
+  let mem = {};
+  const rd = (k) => { try { const v = localStorage.getItem(k); return v == null ? (mem[k] == null ? null : mem[k]) : v; } catch (e) { return mem[k] == null ? null : mem[k]; } };
+  const wr = (k, v) => { mem[k] = v; try { localStorage.setItem(k, v); } catch (e) {} };
+  let rows, nextId;
+  (function load() {
+    try { const d = JSON.parse(rd(KEY_ROWS)); if (d && Array.isArray(d.rows)) { rows = d.rows; nextId = d.nextId || (rows.reduce((m, r) => Math.max(m, r.id), 0) + 1); return; } } catch (e) {}
+    rows = SAMPLE(); nextId = 6;
+  })();
+  const saveRows = () => wr(KEY_ROWS, JSON.stringify({ v: 1, nextId, rows }));
+  /* 「상시 5인 이상」은 이 한 곳에만 저장하고, 다른 화면은 이 값을 읽는다 */
+  const getFive = () => { try { const d = JSON.parse(rd(KEY_SET)); if (d && ["예", "아니오", "모름"].includes(d.fivePlus)) return d.fivePlus; } catch (e) {} return "예"; };
+  const setFive = (v) => wr(KEY_SET, JSON.stringify({ v: 1, fivePlus: v }));
+
+  const ymd = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  function badges(r) {
+    const today = ymd(new Date()), soon = ymd(new Date(Date.now() + 30 * 864e5)), out = [];
+    if (r.paper === "없음") out.push(["red", "계약서 없음"]);
+    else if (r.paper === "작성") { if (!r.delivered) out.push(["yellow", "교부일 모름"]); }
+    else out.push(["yellow", "계약서 모름"]);
+    if (r.end) { if (r.end < today) out.push(["red", "만료 지남"]); else if (r.end <= soon) out.push(["yellow", "곧 만료"]); }
+    else if (r.type === "계약직") out.push(["yellow", "종료일 모름"]);
+    if (!out.length) out.push(["green", "정상"]);
+    return out;
+  }
+  const bad = (r) => badges(r).some(b => b[0] !== "green");
+  function leaveBadge(five) {
+    if (five === "아니오") return ["gray", "해당 없음(현재)"];
+    if (five === "모름") return ["yellow", "연차 모름"];
+    return ["blue", "연차 적용 · 잔여 모름"];
+  }
+  const unk = (v, suffix) => (v === "" || v == null) ? '<span class="pp-unk">모름</span>' : E(v) + (suffix || "");
+  const bHtml = (a) => `<span class="pp-b ${a[0]}">${E(a[1])}</span>`;
+
+  let err = "";
+  window.renderRoster = function () {
+    const root = document.getElementById("pp-root"); if (!root) return;
+    const five = getFive(), lv = leaveBadge(five), need = rows.filter(bad).length;
+    root.innerHTML = `
+      <div class="pp-note"><b>연습용 화면입니다.</b> 가상 직원만 넣으세요(실제 직원 이름·월급·주민번호 금지 — 월급 칸은 일부러 없습니다). 저장은 이 컴퓨터의 브라우저뿐입니다.<br>
+        비어 있는 칸은 「없음」이 아니라 <b>「모름」</b>으로 보입니다. 배지는 「확인 필요」까지만 알려 주고, 합법·위법은 판단하지 않습니다 — 판단은 대표님과 노무사의 일입니다.</div>
+      <div class="pp-panel"><h2>회사 설정</h2><div class="pp-set"><label for="pp-five"><b>상시 5인 이상</b></label>
+        <select id="pp-five">${["예", "아니오", "모름"].map(o => `<option ${o === five ? "selected" : ""}>${o}</option>`).join("")}</select>
+        <span>→ 연차 줄: ${bHtml(lv)} <span style="color:var(--sub)">(이 값은 한 곳에만 저장되고, 아래 표가 이 값을 읽습니다)</span></span></div></div>
+      <div class="pp-sum">
+        <div class="pp-stat"><b>${rows.length}명</b><span>명부</span></div>
+        <div class="pp-stat"><b style="color:#c4301c">${need}명</b><span>확인 필요(빨강·노랑 배지)</span></div>
+        <div class="pp-stat"><b style="color:#1f7a47">${rows.length - need}명</b><span>정상</span></div>
+        <div class="pp-stat"><b style="font-size:15px;padding-top:6px">${ymd(new Date())}</b><span>오늘 기준(날짜 배지)</span></div></div>
+      <div class="pp-panel"><h2>사람 명부 <span style="font-weight:400; font-size:12px; color:var(--sub)">— 가상 직원 (빈칸 = 모름)</span></h2>
+        <div class="pp-wrapt"><table><thead><tr><th>이름</th><th>부서</th><th>고용형태</th><th>주 소정근로시간</th><th>계약 종료일</th><th>근로계약서</th><th>교부일</th><th>노무 상태 배지</th><th>연차</th><th></th></tr></thead><tbody>
+        ${rows.length ? rows.map(r => `<tr data-id="${r.id}">
+          <td><b>${E(r.name)}</b></td><td>${unk(r.dept)}</td><td>${unk(r.type)}</td><td>${unk(r.hours, "시간")}</td>
+          <td>${r.end ? E(r.end) : (r.type === "계약직" ? '<span class="pp-unk">모름</span>' : "—")}</td>
+          <td>${unk(r.paper)}</td><td>${r.delivered ? E(r.delivered) : (r.paper === "작성" ? '<span class="pp-unk">모름</span>' : "—")}</td>
+          <td>${badges(r).map(bHtml).join("")}</td><td>${bHtml(lv)}</td><td><button type="button" class="pp-del" data-del="${r.id}">삭제</button></td></tr>`).join("")
+          : '<tr><td colspan="10" style="text-align:center;color:var(--sub);padding:26px">명부가 비어 있습니다. 아래에서 가상 직원을 추가하거나 「샘플 5명으로 되돌리기」를 누르세요.</td></tr>'}
+        </tbody></table></div>
+        <div style="margin-top:10px"><button type="button" class="pp-btn ghost" id="pp-sample">샘플 5명으로 되돌리기</button> <button type="button" class="pp-btn ghost" id="pp-clear">모두 지우기</button></div></div>
+      <div class="pp-panel"><h2>가상 직원 추가</h2>
+        <form class="pp-form" id="pp-form" autocomplete="off">
+          <div><label>이름 *</label><input id="pf-name" placeholder="예: 가상직원F"></div>
+          <div><label>부서</label><input id="pf-dept" placeholder="비우면 모름"></div>
+          <div><label>고용형태</label><select id="pf-type"><option value="">(모름)</option><option>정함 없음</option><option>계약직</option><option>단시간</option></select></div>
+          <div><label>주 소정근로시간</label><input id="pf-hours" type="number" min="0" max="168" step="0.5" placeholder="비우면 모름"></div>
+          <div><label>계약 종료일</label><input id="pf-end" type="date"></div>
+          <div><label>근로계약서</label><select id="pf-paper"><option value="">(모름)</option><option>작성</option><option>없음</option></select></div>
+          <div><label>교부일</label><input id="pf-deliv" type="date"></div>
+          <div><button class="pp-btn" type="submit">추가</button></div>
+          <div class="pp-msg" id="pp-msg">${E(err)}</div></form></div>`;
+    document.getElementById("pp-five").onchange = (e) => { setFive(e.target.value); window.renderRoster(); };
+    document.getElementById("pp-sample").onclick = () => { if (confirm("명부를 샘플 가상 직원 5명으로 되돌릴까요?")) { rows = SAMPLE(); nextId = 6; saveRows(); err = ""; window.renderRoster(); } };
+    document.getElementById("pp-clear").onclick = () => { if (confirm("명부를 모두 지울까요?")) { rows = []; saveRows(); err = ""; window.renderRoster(); } };
+    root.querySelectorAll("[data-del]").forEach(b => b.onclick = () => { rows = rows.filter(r => String(r.id) !== b.dataset.del); saveRows(); err = ""; window.renderRoster(); });
+    document.getElementById("pp-form").onsubmit = (e) => {
+      e.preventDefault();
+      const g = (id) => document.getElementById(id).value.trim();
+      const name = g("pf-name"), hours = g("pf-hours"), paper = g("pf-paper"), deliv = g("pf-deliv");
+      if (!name) { err = "이름을 입력하세요(가상 이름만)."; return window.renderRoster(); }
+      if (hours !== "" && !(Number(hours) >= 0 && Number(hours) <= 168)) { err = "주 소정근로시간은 0~168 사이로 입력하세요."; return window.renderRoster(); }
+      if (deliv && paper !== "작성") { err = "근로계약서가 「작성」이 아니면 교부일을 넣을 수 없습니다."; return window.renderRoster(); }
+      rows.push({ id: nextId++, name, dept: g("pf-dept"), type: g("pf-type"), hours: hours === "" ? "" : Number(hours), end: g("pf-end"), paper, delivered: deliv });
+      saveRows(); err = ""; window.renderRoster();
+    };
+  };
+  if (typeof curView !== "undefined" && curView === "people") window.renderRoster();
+})();
+</script>
+<script>
+/* 자료 수집현황 (연습용) — 기혁스 3기 7회차 ② 「무엇이 언제까지 들어와 있나」.
+   · 숫자를 읽기 전에 「이 자료가 며칠 것까지 들어와 있나」부터 본다. 낡은 자료를 최신인 줄 알고 판단하는 것이 가장 흔한 사고다.
+   · 이 폴더는 잠겨 있지 않으므로 금액·거래처·계좌번호는 적지 않는다(통장은 별명이나 끝 4자리만).
+   · 저장: 이 컴퓨터 브라우저(localStorage). 못 쓰는 환경에서도 화면은 동작한다(새로고침하면 사라짐). */
+(function () {
+  const KEY = "company_datastatus_v1";
+  const E = (x) => String(x == null ? "" : x).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const SRC = [
+    { k: "bank", n: "통장 (은행 거래)" },
+    { k: "card", n: "카드 (승인·청구)" },
+    { k: "tax",  n: "세금계산서" },
+    { k: "cash", n: "현금영수증" },
+  ];
+  const DEFAULT = () => ({
+    v: 1,
+    memo: "2026-10-22: 클로브 커넥터 연결은 확인됨(클로브가 계정 사용자를 알려 줌). 클로브 계정에 회사가 아직 등록되지 않아 수집된 자료가 없음 → 네 줄 모두 「연결 안 됨」. 회사를 등록하고 은행·홈택스를 연결하면 아래를 채운다.",
+    rows: { bank: { conn: "아니오", last: "", note: "" }, card: { conn: "아니오", last: "", note: "" }, tax: { conn: "아니오", last: "", note: "" }, cash: { conn: "아니오", last: "", note: "" } },
+  });
+  let mem = null;
+  const rd = () => { try { const v = localStorage.getItem(KEY); if (v != null) return v; } catch (e) {} return mem; };
+  const wr = (s) => { mem = s; try { localStorage.setItem(KEY, s); } catch (e) {} };
+  let st;
+  (function load() {
+    try { const d = JSON.parse(rd()); if (d && d.rows) { st = d; SRC.forEach(s => { if (!st.rows[s.k]) st.rows[s.k] = { conn: "모름", last: "", note: "" }; }); return; } } catch (e) {}
+    st = DEFAULT();
+  })();
+  const save = () => wr(JSON.stringify(st));
+  const ymd = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const daysSince = (s) => { const a = new Date(s + "T00:00:00"), b = new Date(ymd(new Date()) + "T00:00:00"); return Math.round((b - a) / 864e5); };
+
+  /* 판정: 연결 안 됨 / 모름 / 최신(2일 이내) / 확인 필요(3~7일) / 오래됨(8일 이상). 기준 일수는 연습용 참고값. */
+  function verdict(r) {
+    if (r.conn === "아니오") return { cls: "gray", text: "연결 안 됨", days: null, order: 0 };
+    if (r.conn !== "예") return { cls: "yellow", text: "연결 모름", days: null, order: 2 };
+    if (!r.last) return { cls: "yellow", text: "가져온 날 모름", days: null, order: 2 };
+    const d = daysSince(r.last);
+    if (d < 0) return { cls: "yellow", text: "날짜 확인 필요", days: d, order: 2 };
+    if (d <= 2) return { cls: "green", text: "최신", days: d, order: 1 };
+    if (d <= 7) return { cls: "yellow", text: "며칠 지남 · 확인 필요", days: d, order: 2 };
+    return { cls: "red", text: "오래됨", days: d, order: 3 };
+  }
+  const PROMPT = "클로브에 연결된 것들(통장 · 카드 · 세금계산서 · 현금영수증)과, 각각 마지막으로 자료를 가져온 시각을 표로 보여줘. 오래된 것이 있으면 며칠 지났는지도 같이 적어줘. 금액은 적지 마.";
+
+  window.renderDataStatus = function () {
+    const root = document.getElementById("ds-root"); if (!root) return;
+    const vs = SRC.map(s => verdict(st.rows[s.k]));
+    const ok = vs.filter(v => v.cls === "green").length, chk = vs.filter(v => v.cls === "yellow" || v.cls === "red").length, off = vs.filter(v => v.cls === "gray").length;
+    root.innerHTML = `
+      <div class="pp-note"><b>연습용 화면입니다.</b> 숫자를 읽기 전에 이것부터 봅니다 — <b>무엇이, 언제까지 들어와 있나.</b> 어제 것이 빠져 있으면 숫자가 틀립니다.<br>
+        이 폴더는 잠겨 있지 않으므로 <b>금액·거래처 이름·계좌번호는 적지 마세요</b>(통장은 별명이나 끝 4자리만). 저장은 이 컴퓨터의 브라우저뿐입니다.</div>
+      <div class="pp-sum">
+        <div class="pp-stat"><b style="color:#1f7a47">${ok}건</b><span>최신</span></div>
+        <div class="pp-stat"><b style="color:#c4301c">${chk}건</b><span>확인 필요(노랑·빨강)</span></div>
+        <div class="pp-stat"><b style="color:#6b7280">${off}건</b><span>연결 안 됨</span></div>
+        <div class="pp-stat"><b style="font-size:15px;padding-top:6px">${ymd(new Date())}</b><span>오늘 기준</span></div></div>
+      <div class="pp-panel"><h2>무엇이 언제까지 들어와 있나</h2>
+        <div class="pp-wrapt"><table><thead><tr><th>자료</th><th>클로브에 연결</th><th>마지막으로 가져온 날</th><th>며칠 지남</th><th>상태</th><th>메모 (별명 · 끝 4자리까지만)</th></tr></thead><tbody>
+        ${SRC.map((s, i) => { const r = st.rows[s.k], v = vs[i];
+          return `<tr data-k="${s.k}"><td><b>${E(s.n)}</b></td>
+            <td><select data-f="conn">${["예", "아니오", "모름"].map(o => `<option ${o === r.conn ? "selected" : ""}>${o}</option>`).join("")}</select></td>
+            <td><input type="date" data-f="last" value="${E(r.last)}" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit"> <button type="button" class="pp-del" data-today="${s.k}">오늘</button></td>
+            <td>${v.days == null ? '<span class="pp-unk">모름</span>' : E(v.days) + "일"}</td>
+            <td><span class="pp-b ${v.cls}">${E(v.text)}</span></td>
+            <td><input type="text" data-f="note" value="${E(r.note)}" placeholder="예: 주거래 통장 · 끝 1234" style="padding:6px 8px;border:1px solid var(--line);border-radius:8px;font:inherit;width:100%"></td></tr>`; }).join("")}
+        </tbody></table></div>
+        <div style="margin-top:10px"><button type="button" class="pp-btn ghost" id="ds-practice">연습(B 길) 값으로 채우기</button> <button type="button" class="pp-btn ghost" id="ds-reset">처음 상태로(클로브 연결 안 됨)</button>
+          <span style="font-size:12px;color:var(--sub)"> 연습 값 = 수업의 가상 회사(한빛산업) 파일의 마지막 날짜. 우리 회사 자료가 아닙니다.</span></div>
+        <div style="margin-top:10px;font-size:12.5px;color:var(--sub);line-height:1.7">판정 기준(연습용 참고값): 2일 이내 = 최신 · 3~7일 = 확인 필요 · 8일 이상 = 오래됨. 덜 들어온 것이 있으면 <b>클로브 화면에서 「최신화(새로 가져오기)」</b>를 누르세요(단추 이름은 클로브 화면에서 확인). 회사마다 기준을 바꿔도 됩니다.</div></div>
+      <div class="pp-panel"><h2>현재 상태 메모</h2>
+        <textarea id="ds-memo" rows="3" style="width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;font:inherit">${E(st.memo)}</textarea></div>
+      <div class="pp-panel"><h2>클로드에게 시켜서 이 표 채우기 <span style="font-weight:400;font-size:12px;color:var(--sub)">— 클로브 커넥터가 켜져 있고 회사가 등록된 뒤에</span></h2>
+        <div style="background:#f3f5f8;border-radius:8px;padding:10px 12px;font-size:13px;line-height:1.7" id="ds-prompt">${E(PROMPT)}</div>
+        <div style="margin-top:8px"><button type="button" class="pp-btn ghost" id="ds-copy">복사</button> <span id="ds-copied" style="font-size:12px;color:var(--sub)"></span></div>
+        <div style="margin-top:8px;font-size:12px;color:var(--sub)">결과의 날짜만 위 표에 옮겨 적으세요. 금액이나 계좌번호가 나오면 이 화면에 옮기지 않습니다. 클로드가 은행 비밀번호를 물으면 답하지 마세요.</div></div>`;
+    root.querySelectorAll("tr[data-k]").forEach(tr => {
+      const k = tr.dataset.k;
+      tr.querySelectorAll("[data-f]").forEach(el => {
+        const f = el.dataset.f;
+        const apply = () => { st.rows[k][f] = el.value; save(); if (f !== "note") window.renderDataStatus(); };
+        el.addEventListener(f === "note" ? "change" : "change", apply);
+      });
+    });
+    root.querySelectorAll("[data-today]").forEach(b => b.onclick = () => { st.rows[b.dataset.today].last = ymd(new Date()); if (st.rows[b.dataset.today].conn !== "예") st.rows[b.dataset.today].conn = "예"; save(); window.renderDataStatus(); });
+    document.getElementById("ds-practice").onclick = () => {
+      if (!confirm("연습용 값으로 채울까요? (가상 회사 한빛산업의 2026-08 통장·세금계산서 파일 기준. 현재 입력은 덮어씁니다)")) return;
+      st.rows.bank = { conn: "예", last: "2026-08-31", note: "연습 파일(한빛산업·가상) · 8월분 42건" };
+      st.rows.tax  = { conn: "예", last: "2026-08-25", note: "연습 파일(한빛산업·가상) · 발행 8건 중 마지막 발행일" };
+      st.rows.card = { conn: "아니오", last: "", note: "체크카드만 사용 — 카드 내역은 통장에 이미 있음(연습 가정)" };
+      st.rows.cash = { conn: "아니오", last: "", note: "" };
+      st.memo = "연습(B 길): 한빛산업 가상 파일 기준 값입니다. 통장은 8월 31일까지만 들어 있어 오늘 기준 며칠 지났는지가 크게 나옵니다 — 실제 회사라면 클로브에서 최신화부터 합니다. 우리 회사 자료가 아닙니다.";
+      save(); window.renderDataStatus();
+    };
+    document.getElementById("ds-reset").onclick = () => { if (!confirm("처음 상태(네 줄 모두 연결 안 됨)로 되돌릴까요?")) return; st = DEFAULT(); save(); window.renderDataStatus(); };
+    const memo = document.getElementById("ds-memo"); memo.addEventListener("change", () => { st.memo = memo.value; save(); });
+    document.getElementById("ds-copy").onclick = () => { const done = (t) => { document.getElementById("ds-copied").textContent = t; }; try { navigator.clipboard.writeText(PROMPT).then(() => done("복사했습니다"), () => done("복사하지 못했습니다 — 글자를 직접 선택해 복사하세요")); } catch (e) { done("복사하지 못했습니다 — 글자를 직접 선택해 복사하세요"); } };
+  };
+  if (typeof curView !== "undefined" && curView === "datastatus") window.renderDataStatus();
+})();
+</script>
+<!--ledger-js:begin-->
+<script>
+/*
+ * 문의 대장 · 고객 대장 (연습용) — 기혁스 3기 5회차 ⑤. 운영관리자 화면(admin.html)의 「문의 대장」「고객 대장」 탭과 ERP 지도(erp-map.html)의 대장 화면이 같이 쓴다.
+ *
+ * · 이 컴퓨터에서 열 때만 동작한다(file:// 또는 localhost). 공개 주소(github.io·pages.dev)에서는 탭과 화면을 지운다.
+ *   — 연습용이라 실제 시민 정보를 넣으면 안 되고, 직원이 함께 보는 대장은 6회차에 Supabase로 만든다.
+ * · 저장은 이 컴퓨터 브라우저의 localStorage 뿐이다(서버로 가지 않음). 키: company_inquiries_v1
+ * · 응대 단계와 계약 결과는 서로 다른 칸이다. 계약 결과가 비어 있으면 「미입력」 배지가 붙는다.
+ * · 같은 사람은 이름이 아니라 「연락처(숫자만)」로 판단해 같은 고객번호(C-0001 꼴)로 묶는다.
+ * · 「처음 알게 된 경로」는 고객을 처음 만들 때 한 번만 저장하고 바뀌지 않는다. 문의의 경로는 문의마다 따로 남는다.
+ * · 경로 값은 홈페이지 문의 폼(Supabase inquiries.source)과 같다 → 나중에 이어 붙일 때 그대로 붙는다.
+ */
+(function () {
+  "use strict";
+  const IS_LOCAL = location.protocol === "file:" || location.protocol === "data:" || location.protocol === "blob:" || ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  const tabBtns = document.querySelectorAll('.admin-tab[data-tab="inq"], .admin-tab[data-tab="cust"]');
+  const panels = document.querySelectorAll("#tab-inq, #tab-cust");
+  if (!IS_LOCAL) {            // 공개 주소에서는 탭과 화면을 아예 없앤다
+    tabBtns.forEach(b => b.remove()); panels.forEach(p => p.remove());
+    return;
+  }
+  tabBtns.forEach(b => { b.style.display = ""; });
+
+
+  /* ── 화면 틀 — 운영관리자 탭(#tab-inq, #tab-cust)과 ERP 지도의 대장 화면이 같은 틀을 쓴다 ── */
+  const INQ_HTML = `
+    <div class="lg-practice">
+      <b>연습용 화면입니다.</b> 실제 시민의 이름·연락처를 넣지 마세요. <b>가상 이름·가상 번호만</b> 적습니다(예: 가상홍길동 / 010-0000-0001).
+      저장되는 곳은 <b>이 컴퓨터의 브라우저(localStorage)뿐</b>이고 서버로 가지 않습니다. 실제 홈페이지 문의는 Supabase에 쌓이고, 직원이 함께 보는 대장은 6회차에 만듭니다.
+    </div>
+    <div class="lg-summary"></div>
+    <section class="lg-panel">
+      <h2>새 문의 넣기</h2>
+      <form id="lg-form" class="lg-form" novalidate>
+        <div><label for="lg-date">접수일 <span class="req">*</span></label><input type="date" id="lg-date" required></div>
+        <div><label for="lg-name">이름 <span class="req">*</span></label><input type="text" id="lg-name" maxlength="40" placeholder="예: 가상홍길동" autocomplete="off" required></div>
+        <div><label for="lg-phone">연락처 <span class="req">*</span></label><input type="tel" id="lg-phone" inputmode="numeric" maxlength="20" placeholder="예: 010-0000-0001" autocomplete="off" required>
+          <div class="lg-hint">숫자 9~11자리 (하이픈은 자동 정리) · 같은 연락처면 같은 고객입니다</div></div>
+        <div><label for="lg-product">관심 서비스</label><select id="lg-product"><option value="">선택 안 함</option></select></div>
+        <div><label for="lg-source">경로 — 어디서 알고 오셨나요 <span class="req">*</span></label><select id="lg-source"><option value="">선택해 주세요</option></select></div>
+        <div><button type="submit" class="lg-btn">접수 저장</button></div>
+        <div class="lg-msg note" id="lg-msg" role="status">응대 단계는 「접수」로, 계약 결과는 비어 있는 채로 시작합니다. 아래 표에서 바꿉니다.</div>
+      </form>
+    </section>
+    <section class="lg-panel">
+      <h2 style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">문의 대장
+        <button class="lg-clear" id="lg-clear" type="button">연습 데이터 모두 지우기</button></h2>
+      <div class="lg-wrap">
+        <table>
+          <thead><tr><th>접수일</th><th>이름</th><th>연락처</th><th>관심 서비스</th><th>경로</th><th>응대 단계</th><th>계약 결과</th><th></th></tr></thead>
+          <tbody id="lg-rows"></tbody>
+        </table>
+      </div>
+      <div class="lg-hint" style="margin-top:10px;">응대 단계(접수·연락중·상담완료)와 계약 결과(계약·보류·실패)는 <b>서로 다른 칸</b>입니다. 상담이 끝났다고 계약이 된 것은 아닙니다. 계약 결과가 비어 있으면 「미입력」으로 보입니다. 이름 아래의 「고객 C-0001 · Q-0001」은 이 문의가 어느 고객의 몇 번째 접수번호인지입니다.</div>
+    </section>`;
+  const CUST_HTML = `
+    <div class="lg-practice">
+      <b>연습용 화면입니다.</b> 문의 대장에 넣은 가상 문의가 연락처로 묶여 여기에 나타납니다. 이 컴퓨터의 브라우저에만 저장됩니다.
+    </div>
+    <div class="lg-summary"></div>
+    <section class="lg-panel">
+      <h2>고객 대장 <span style="font-weight:500; font-size:12.5px; color:var(--sub,#667085);">— 같은 사람을 번호 하나로 묶습니다 (줄을 누르면 이 분의 문의가 펼쳐집니다)</span></h2>
+      <div class="lg-wrap">
+        <table class="lg-cust">
+          <thead><tr><th>고객번호</th><th>이름</th><th>처음 알게 된 경로</th><th>문의 건수</th><th>계약 건수</th></tr></thead>
+          <tbody id="lg-cust-rows"></tbody>
+        </table>
+      </div>
+      <div class="lg-hint" style="margin-top:10px;">
+        <b>같은 연락처 = 같은 고객번호</b> — 이름이나 표기가 달라도 연락처(숫자만)가 같으면 한 분입니다. 이름이 같아도 연락처가 다르면 다른 고객입니다.<br>
+        <b>처음 알게 된 경로는 바뀌지 않습니다</b> — 고객을 처음 만들 때(첫 문의) 한 번만 정하고, 나중에 다른 경로로 또 문의해도 고치지 않습니다. 문의의 경로는 문의마다 따로 남습니다.<br>
+        <b>계약 건수</b>는 계약 결과가 「계약」인 문의 수입니다. 결과가 비어 있는 문의는 세지 않습니다.
+      </div>
+    </section>`;
+  const inqBox = document.getElementById("tab-inq"), custBox = document.getElementById("tab-cust");
+  if (inqBox && !inqBox.firstElementChild) inqBox.innerHTML = INQ_HTML;
+  if (custBox && !custBox.firstElementChild) custBox.innerHTML = CUST_HTML;
+  if (!document.getElementById("lg-form")) return;   // 이 화면에 대장 틀이 없으면 할 일이 없다
+
+  const STORE_KEY = "company_inquiries_v1";
+  const SOURCES = { search: "검색", map: "지도", referral: "지인 소개", sns: "SNS", phone: "전화", other: "기타", unknown: "모르겠음" };
+  const STAGES = ["접수", "연락중", "상담완료"];
+  const RESULTS = ["계약", "보류", "실패"];
+  const PRODUCTS = ["시민동아리", "사회연대경제 창업교육", "농촌크리에이투어", "공간대관", "기타"];
+
+  const $ = id => document.getElementById("lg-" + id);
+  const todayStr = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  const qno = id => "Q-" + String(id).padStart(4, "0");
+  const cno = id => "C-" + String(id).padStart(4, "0");
+  const digits = s => String(s || "").replace(/\D/g, "");
+
+  /* ── 저장 (localStorage) — 못 쓰는 환경이어도 화면은 동작한다 ── */
+  let storageOk = true;
+  const emptyDb = () => ({ v: 2, nextId: 1, nextCustomerId: 1, rows: [], customers: [] });
+  let memory = emptyDb();
+
+  // 옛 저장본(고객 없음)이나 깨진 값을 새 형식으로 맞춘다. 같은 연락처는 같은 고객으로 묶고, 가장 이른 문의의 경로를 처음 경로로 삼는다.
+  function normalize(d) {
+    if (!d || typeof d !== "object") return emptyDb();
+    d.rows = (Array.isArray(d.rows) ? d.rows : []).filter(r => r && typeof r.id === "number" && r.phone);
+    d.customers = (Array.isArray(d.customers) ? d.customers : []).filter(c => c && typeof c.id === "number" && c.phone);
+    d.nextId = Math.max(Number(d.nextId) || 1, ...d.rows.map(r => r.id + 1), 1);
+    d.nextCustomerId = Math.max(Number(d.nextCustomerId) || 1, ...d.customers.map(c => c.id + 1), 1);
+    const ordered = d.rows.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id));
+    ordered.forEach(r => {
+      let c = d.customers.find(x => x.id === r.customerId) || d.customers.find(x => x.phone === r.phone);
+      if (!c) {
+        c = { id: d.nextCustomerId++, name: r.name, phone: r.phone, firstSource: r.source, firstDate: r.date };
+        d.customers.push(c);
+      }
+      r.customerId = c.id;
+    });
+    d.v = 2;
+    return d;
+  }
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      return raw ? normalize(JSON.parse(raw)) : emptyDb();
+    } catch (e) { storageOk = false; return memory; }
+  }
+  function save() {
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
+    catch (e) { storageOk = false; }
+    if (!storageOk) setMsg("note", "이 브라우저에서는 저장할 수 없어 화면을 닫으면 사라집니다. (시크릿 창이면 일반 창에서 열어 주세요)");
+  }
+  let db = load();
+  memory = db;
+  if (storageOk) save();   // 옛 저장본이었다면 새 형식으로 한 번 저장
+
+  /* ── 작은 도구 ── */
+  function el(tag, attrs, ...kids) {
+    const e = document.createElement(tag);
+    Object.entries(attrs || {}).forEach(([k, v]) => { if (k === "class") e.className = v; else if (k === "text") e.textContent = v; else e.setAttribute(k, v); });
+    kids.forEach(k => { if (k != null) e.append(k.nodeType ? k : document.createTextNode(k)); });
+    return e;
+  }
+  function fmtPhone(d) {
+    if (d.length === 11) return d.replace(/(\d{3})(\d{4})(\d{4})/, "$1-$2-$3");
+    if (d.length === 10) return d.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3");
+    if (d.length === 9) return d.replace(/(\d{2})(\d{3})(\d{4})/, "$1-$2-$3");
+    return d;
+  }
+  function setMsg(kind, text) { const m = $("msg"); if (!m) return; m.className = "lg-msg " + kind; m.textContent = text; }
+  const customerOf = id => db.customers.find(c => c.id === id);
+  const rowsOf = id => db.rows.filter(r => r.customerId === id);
+
+  /* ── 화면 ── */
+  function fillSelects() {
+    PRODUCTS.forEach(p => $("product").append(el("option", { value: p, text: p })));
+    Object.entries(SOURCES).forEach(([v, t]) => $("source").append(el("option", { value: v, text: t })));
+    $("date").value = todayStr();
+  }
+
+  function resultBadge(r) {
+    if (!r) return el("span", { class: "lg-badge missing", text: "미입력" });
+    if (r === "계약") return el("span", { class: "lg-badge done", text: "계약" });
+    if (r === "보류") return el("span", { class: "lg-badge hold", text: "보류" });
+    return el("span", { class: "lg-badge fail", text: r });
+  }
+
+  function renderSummary() {
+    const total = db.rows.length;
+    const month = todayStr().slice(0, 7);
+    const thisMonth = db.rows.filter(r => String(r.date).slice(0, 7) === month).length;
+    const missing = db.rows.filter(r => !r.result).length;
+    const pct = total ? Math.round(missing / total * 100) : 0;
+    const stat = (n, label, warn) => el("div", { class: "lg-stat" + (warn ? " warn" : "") }, el("b", { text: n }), el("span", { text: label }));
+    document.querySelectorAll(".lg-summary").forEach(box => {
+      box.replaceChildren(stat(db.customers.length + "명", "고객"), stat(total + "건", "전체 문의"), stat(thisMonth + "건", "이번 달(" + month + ") 접수"),
+        stat(missing + "건", "계약 결과 미입력" + (total ? " · 전체의 " + pct + "%" : ""), missing > 0));
+    });
+  }
+
+  function renderInquiries() {
+    const tb = $("rows"); tb.replaceChildren();
+    const rows = db.rows.slice().sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : b.id - a.id));
+    if (!rows.length) { tb.append(el("tr", {}, el("td", { class: "lg-empty", colspan: "8", text: "아직 문의가 없습니다. 위에서 가상 문의를 하나 넣어 보세요." }))); return; }
+    rows.forEach(r => {
+      const stageSel = el("select", { "aria-label": "응대 단계" }, ...STAGES.map(s => { const o = el("option", { value: s, text: s }); if (r.stage === s) o.selected = true; return o; }));
+      stageSel.addEventListener("change", () => { r.stage = stageSel.value; save(); renderCustomers(); });
+
+      const resSel = el("select", { "aria-label": "계약 결과" }, el("option", { value: "", text: "(비어 있음)" }),
+        ...RESULTS.map(s => { const o = el("option", { value: s, text: s }); if (r.result === s) o.selected = true; return o; }));
+      const badgeSlot = el("span", {}, resultBadge(r.result));
+      resSel.addEventListener("change", () => { r.result = resSel.value || ""; save(); badgeSlot.replaceChildren(resultBadge(r.result)); renderSummary(); renderCustomers(); });
+
+      const del = el("button", { class: "lg-del", type: "button", text: "지우기" });
+      del.addEventListener("click", () => removeInquiry(r));
+
+      tb.append(el("tr", {},
+        el("td", { text: r.date }),
+        el("td", {}, r.name, el("span", { class: "lg-sub", text: "고객 " + cno(r.customerId) + " · " + qno(r.id) })),
+        el("td", { text: fmtPhone(r.phone) }),
+        el("td", { text: r.product || "—" }),
+        el("td", { text: SOURCES[r.source] || r.source }),
+        el("td", {}, stageSel),
+        el("td", {}, resSel, badgeSlot),
+        el("td", {}, del)));
+    });
+  }
+
+  const openSet = new Set();   // 펼쳐 둔 고객
+  function renderCustomers() {
+    const tb = $("cust-rows"); tb.replaceChildren();
+    if (!db.customers.length) { tb.append(el("tr", {}, el("td", { class: "lg-empty", colspan: "5", text: "아직 고객이 없습니다. 문의를 넣으면 연락처로 고객이 만들어집니다." }))); return; }
+    db.customers.slice().sort((a, b) => a.id - b.id).forEach(c => {
+      const mine = rowsOf(c.id);
+      const contracts = mine.filter(r => r.result === "계약").length;   // 결과가 비어 있으면 세지 않는다
+      const isOpen = openSet.has(c.id);
+
+      const tg = el("button", { class: "lg-toggle", type: "button", "aria-expanded": String(isOpen), "aria-label": cno(c.id) + " 문의 펼치기", text: isOpen ? "▾" : "▸" });
+      const tr = el("tr", { class: "lg-cust-row" },
+        el("td", {}, tg, cno(c.id)),
+        el("td", {}, c.name, el("span", { class: "lg-sub", text: fmtPhone(c.phone) })),
+        el("td", {}, el("span", { class: "lg-badge first", text: SOURCES[c.firstSource] || c.firstSource }), el("span", { class: "lg-sub", text: "바뀌지 않음 · 첫 문의 " + (c.firstDate || "") })),
+        el("td", { class: mine.length ? "" : "lg-num0", text: mine.length + "건" }),
+        el("td", { class: contracts ? "lg-num-pos" : "lg-num0", text: contracts + "건" }));
+      tr.addEventListener("click", () => { if (openSet.has(c.id)) openSet.delete(c.id); else openSet.add(c.id); renderCustomers(); });
+      tb.append(tr);
+
+      if (isOpen) {
+        const inner = el("table", { class: "lg-small" },
+          el("thead", {}, el("tr", {}, ...["문의번호", "접수일", "그때의 경로", "관심 서비스", "응대 단계", "계약 결과"].map(t => el("th", { text: t })))),
+          el("tbody", {}, ...mine.slice().sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id - b.id)).map(r =>
+            el("tr", {}, el("td", { text: qno(r.id) }), el("td", { text: r.date }), el("td", { text: SOURCES[r.source] || r.source }),
+              el("td", { text: r.product || "—" }), el("td", { text: r.stage }), el("td", {}, resultBadge(r.result))))));
+        tb.append(el("tr", { class: "lg-detail" }, el("td", { colspan: "5" },
+          el("div", { class: "lg-note", text: "「처음 알게 된 경로」는 " + (SOURCES[c.firstSource] || c.firstSource) + " 그대로이고, 아래 문의의 경로는 문의마다 따로 남습니다. 이 분이 문의할 때 적은 이름: " + [...new Set(mine.map(r => r.name))].join(", ") }),
+          inner)));
+      }
+    });
+  }
+  function render() { renderSummary(); renderInquiries(); renderCustomers(); }
+
+  /* ── 문의 지우기 — 그 고객의 문의가 하나도 안 남으면 고객도 함께 정리한다 ── */
+  function removeInquiry(r) {
+    const c = customerOf(r.customerId);
+    const last = rowsOf(r.customerId).length === 1;
+    const ask = qno(r.id) + " " + r.name + " 문의를 지울까요? (연습 데이터)" + (last && c ? "\n이 고객(" + cno(c.id) + ")의 마지막 문의라서 고객도 함께 지워집니다." : "");
+    if (!confirm(ask)) return;
+    db.rows = db.rows.filter(x => x.id !== r.id);
+    if (last) { db.customers = db.customers.filter(x => x.id !== r.customerId); openSet.delete(r.customerId); }
+    save(); render();
+  }
+
+  /* ── 새 문의 저장: 연락처로 같은 고객을 찾고, 없으면 새 고객번호를 만든다 ── */
+  $("form").addEventListener("submit", e => {
+    e.preventDefault();
+    const date = $("date").value;
+    const name = $("name").value.trim();
+    const phone = digits($("phone").value);   // 숫자만 남겨서 비교한다 (이름이 아니라 연락처)
+    const source = $("source").value;
+    if (!date) return setMsg("err", "접수일을 골라 주세요.");
+    if (!name) return setMsg("err", "이름을 적어 주세요.");
+    if (!/^[0-9]{9,11}$/.test(phone)) return setMsg("err", "연락처는 숫자 9~11자리로 적어 주세요. (예: 010-0000-0001)");
+    if (!source) return setMsg("err", "「어디서 알고 오셨나요」를 선택해 주세요.");
+
+    let c = db.customers.find(x => x.phone === phone);
+    const isNew = !c;
+    if (isNew) {
+      // 처음 알게 된 경로는 이때 한 번만 정한다. 이후 문의가 와도 고치지 않는다.
+      c = { id: db.nextCustomerId++, name, phone, firstSource: source, firstDate: date };
+      db.customers.push(c);
+    }
+    const qid = db.nextId++;
+    db.rows.push({ id: qid, customerId: c.id, date, name, phone, product: $("product").value, source, stage: "접수", result: "" });
+    save();
+    openSet.add(c.id);
+    render();
+    setMsg("ok", qno(qid) + " 접수했습니다. " + (isNew
+      ? "새 고객 " + cno(c.id) + "로 만들었고, 처음 알게 된 경로는 「" + SOURCES[source] + "」입니다."
+      : "같은 연락처의 기존 고객 " + cno(c.id) + "로 묶었습니다 (처음 알게 된 경로 「" + SOURCES[c.firstSource] + "」는 그대로).")
+      + (name.startsWith("가상") ? "" : " — 실제 시민 정보는 이 연습 화면에 넣지 마세요(가상 이름 권장)."));
+    $("name").value = ""; $("phone").value = ""; $("product").value = ""; $("source").value = ""; $("name").focus();
+  });
+
+  $("clear").addEventListener("click", () => {
+    if (!db.rows.length && !db.customers.length) return;
+    if (!confirm("연습 데이터(문의 " + db.rows.length + "건, 고객 " + db.customers.length + "명)를 모두 지울까요? 되돌릴 수 없습니다.")) return;
+    db = emptyDb(); memory = db; openSet.clear(); save(); render(); setMsg("note", "모두 지웠습니다.");
+  });
+
+  fillSelects();
+  if (!storageOk) setMsg("note", "이 브라우저에서는 저장할 수 없어 화면을 닫으면 사라집니다. (시크릿 창이면 일반 창에서 열어 주세요)");
+  render();
+})();
+</script>
+<!--ledger-js:end-->
+</body>
+</html>
