@@ -414,6 +414,41 @@
       </div>
     </div>
 
+    <!-- ══ 화면 6: 돈의 장부 안내 (표 이름 · 누가 보나 · 거래는 클로드가 넣는다) — 금액·거래처·계좌번호는 적지 않음 ══ -->
+    <div id="view-moneyledger" style="display:none;">
+      <div class="pp-wrap">
+        <div class="pp-bar"><a href="#top" id="ml-back">← ERP 지도로</a><span>① 예산·정산 › 돈의 장부 (안내 화면)</span></div>
+        <div class="pp-note"><b>안내 화면입니다.</b> 돈의 장부는 수파베이스(<code>acais-inquiry</code> 프로젝트)에 있고 <b>대표·재무만</b> 봅니다. 이 폴더·화면은 잠겨 있지 않으므로 <b>실제 금액 · 거래처 이름 · 계좌번호는 여기에 적지 않습니다.</b></div>
+        <div class="pp-panel"><h2>누가 무엇을 보나</h2>
+          <div class="pp-wrapt"><table style="min-width:640px"><thead><tr><th>역할</th><th>통장</th><th>내 분류</th><th>거래</th><th>월별 손익</th></tr></thead><tbody>
+            <tr><td><b>대표(ceo)</b></td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
+            <tr><td><b>재무(finance)</b></td><td>●</td><td>●</td><td>●</td><td>●</td></tr>
+            <tr><td>인사(hr) · 일반 직원</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>
+            <tr><td>로그아웃 · 방문자</td><td>거부</td><td>거부</td><td>거부</td><td>거부</td></tr>
+            <tr><td>허용표에 없는 사람 · 퇴사</td><td>0줄</td><td>0줄</td><td>0줄</td><td>0줄</td></tr></tbody></table></div>
+          <div style="margin-top:8px;font-size:12.5px;color:var(--sub);line-height:1.7">6회차 월급 표와 같은 짝입니다 — 돈은 대표·재무만, 인사담당은 명부는 봐도 통장은 못 봅니다. 대표·재무도 홈페이지에서는 「내 분류 · 누가 분류 · 귀속월」 세 칸만 고칠 수 있고, 금액·날짜·적요는 통장 원본이 정본이라 못 고칩니다.</div></div>
+        <div class="pp-panel"><h2>수파베이스의 표 이름</h2>
+          <div class="pp-wrapt"><table style="min-width:640px"><thead><tr><th>이름</th><th>무엇</th><th>잠금</th></tr></thead><tbody>
+            <tr><td><code>bank_account</code></td><td>통장 — 별명 · 부서 · 은행 · <b>끝 4자리만</b>(전체 계좌번호 칸은 일부러 없음)</td><td>RLS 켜짐 · 대표·재무</td></tr>
+            <tr><td><code>money_category</code></td><td>내 분류 — 매출(판 것) · 사람 · 재료·외주 · 자리·설비 · 파는 데 드는 돈 · 보증금 · 카드정산</td><td>RLS 켜짐 · 대표·재무</td></tr>
+            <tr><td><code>txn</code></td><td>거래 — 통장 한 줄 = 거래 한 줄 · 같은 거래는 한 줄만(알아보는 열쇠) · 귀속월 · 누가 분류했나(AI/나)</td><td>RLS 켜짐 · 대표·재무</td></tr>
+            <tr><td><code>v_month_pnl</code></td><td>월별 손익 보기 — 판 것 · 쓴 것 · 남은 돈 · 미분류(따로)</td><td><b>보는 사람 권한</b>(security_invoker) · 방문자 권한 없음</td></tr></tbody></table></div></div>
+        <div class="pp-panel"><h2>거래는 어떻게 들어가나</h2>
+          <div style="font-size:13.5px;line-height:1.9">홈페이지에서 넣고 지우지 않습니다. <b>클로드가 커넥터로 넣습니다</b>(관리자 권한이라 규칙을 건너뛰므로, 아래 넣기 규칙을 클로드가 지킵니다).
+            <ol style="margin:6px 0 0 18px;padding:0">
+              <li>한 번에 한 달씩, 넣기 전에 「이 기간 ○건을 넣겠다」고 먼저 말한다</li>
+              <li>같은 거래를 두 번 넣어도 한 줄 — <code>on conflict (source_key) do nothing</code></li>
+              <li>금액은 늘 양수, 들어왔나 나갔나는 입금/출금 칸 · 계좌는 끝 4자리만</li>
+              <li>내 분류는 목록에 있는 이름만 · 모르면 비워 둔다(= 미분류, 지우지 않음) · 클로브가 붙인 분류는 참고 칸에만</li>
+              <li>넣은 뒤 「새로 / 건너뜀 / 미분류」 세 숫자를 보고한다 · 넣은 뒤에도 역할을 바꿔 줄 수를 세어 확인한다</li></ol></div></div>
+        <div class="pp-panel"><h2>현황 (2026-10-22 · 연습 자료)</h2>
+          <div style="font-size:13.5px;line-height:1.9">
+            <span class="pp-b green">표 3개 + 보기 1개 만듦</span> <span class="pp-b green">시험 6가지 통과</span> <span class="pp-b blue">연습 거래 42건 · 미분류 3건</span><br>
+            시험 결과: 재무 = 보임 · 인사 = 0줄 · 방문자 = 거부 · 허용표에 없는 이메일(스스로 「재무」라고 적어도) = 0줄 · 퇴사한 재무담당 = 0줄 · 같은 거래 두 번 = 한 줄.<br>
+            들어 있는 거래는 <b>수업의 가상 회사(한빛산업) 연습 자료</b>이고 우리 회사 거래가 아닙니다. 실제 통장 내역은 이 시험이 통과한 장부에만 넣고, 클로브에 회사를 등록한 뒤 한 달씩 넣습니다.</div></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -453,7 +488,7 @@ const SECTIONS_DEF = [
     desc: "시민·단체·마을과 함께 만들어가는 관계와 참여 — 사업·프로그램, 참여자·성장지원, 거버넌스·의사결정, 소통·확산",
     groups: ["program", "people", "gov", "comm"] },
   { id: "sec_C", t: "공통", tag: "", cls: "", c: "#16324f", side: "R",
-    desc: "모든 직원이 함께 쓰는 사내 메신저(단톡), 모든 화면의 기준이 되는 직원·조직 정보와 ERP 지도 편집",
+    desc: "모든 직원이 함께 쓰는 전사도구(전자결재·단톡), 모든 화면의 기준이 되는 직원·조직 정보와 ERP 지도 편집",
     groups: ["tools", "common"] },
 ];
 
@@ -463,18 +498,20 @@ const ITEMS = [
     fields: "자료(통장 · 카드 · 세금계산서 · 현금영수증) · 클로브에 연결 · 마지막으로 가져온 날 · 며칠 지남 · 상태 배지 · 메모",
     note: "숫자를 읽기 전에 「무엇이 언제까지 들어와 있나」부터 · 최신 / 확인 필요 / 오래됨 / 연결 안 됨<br>⚠ 연습용: 금액·거래처·계좌번호는 적지 않습니다(이 폴더는 잠겨 있지 않음). 이 컴퓨터 브라우저에만 저장됩니다<br>🔓 지도에서 로그인 없이 바로 열립니다",
     action: "datastatus" },
+  { id: "money_ledger", g: "budget", name: "돈의 장부", type: "ledger", status: "done",
+    fields: "통장(끝 4자리) · 내 분류 · 거래 · 월별 손익(보기) — 수파베이스, 대표·재무만",
+    note: "표 이름 · 누가 보나(대표·재무만) · 거래는 클로드가 커넥터로 넣는다 — 안내 화면<br>⚠ 이 화면에는 실제 금액·거래처·계좌번호를 적지 않습니다(이 폴더는 잠겨 있지 않음). 현재 들어 있는 거래는 수업의 가상 자료입니다",
+    action: "moneyledger" },
   { id: "budget_plan", g: "budget", name: "예산편성", type: "ledger", status: "todo", fields: "연도 · 센터/사업 · 세부과목 · 편성액 · 재원(보조금/자부담)" },
   { id: "budget_exec", g: "budget", name: "예산집행", type: "ledger", status: "todo", fields: "집행일 · 센터 · 사업명 · 항목 · 집행액 · 증빙 · 입력자" },
   { id: "settle", g: "budget", name: "정산보고관리", type: "ledger", status: "todo", fields: "사업명 · 정산마감일 · 제출여부 · 제출일 · 담당자 · 상태" },
   // ② 행정·마감
-  { id: "approval", g: "admin", name: "전자결재", type: "tool", status: "wip",
-    fields: "departments(부서 · 부서장 · 근태 전결 · 지출 전결 한도) · approval_docs(문서번호 · 종류 · 기안자 · 기간 · 일수 · 상태 · 부서장/단장 결재일시) — Supabase",
-    note: "1단계(Supabase): 연차·휴가 · 결재선 = 부서(기안 → 부서장 → 단장) · 자기 결재 방지 · 내 차례/내 신청/전체 문서함 · 회수·반려 · 실시간 갱신<br>2단계: 시간외근무 · 지출결의서(승인 ≠ 집행) · 연차 현황(부여 − 승인된 사용 = 잔여) · 근태 전결 · 지출 전결 한도<br>일반 기안(문서): 기안(품의)·사업계획·결과보고·공문 발송·협조 · 모든 문서에 파일 첨부(파일당 20MB) · 문서 보기 창<br>남은 것: 출장·외근 · 예산집행 짝맞추기",
-    links: [{ label: "전자결재 열기", href: "approval.html" }, { label: "결재선 보기", href: "approval.html#lines" }] },
   { id: "contract", g: "admin", name: "계약협약관리", type: "ledger", status: "todo", fields: "계약명 · 상대기관 · 유형(위탁/MOU) · 체결일 · 만료일 · 담당자" },
   { id: "deadline", g: "admin", name: "마감일통합대시보드", type: "dash", status: "todo", fields: "예산 · 계약 · 사업 탭의 마감일을 자동 집계해 D-day로 표시" },
   // ③ 인사·근태
-  { id: "attendance", g: "hr", name: "근태기록", type: "ledger", status: "todo", fields: "직원ID · 날짜 · 출퇴근시각 · 근태구분" },
+  { id: "attendance", g: "hr", name: "근태기록", type: "ledger", status: "wip", fields: "직원ID · 날짜 · 출퇴근시각 · 근태구분",
+    note: "연차·시간외는 이미 전자결재의 승인 문서에서 센다(연차 현황 탭 · 시간 단위) · 출퇴근 시각 기록은 아직",
+    links: [{ label: "연차 현황 보기", href: "approval.html#leave" }] },
   { id: "payroll", g: "hr", name: "급여계산", type: "auto", status: "todo", fields: "직원ID · 급여월 · 기본급 · 수당 · 공제 · 실지급액 (근태 연동)",
     note: "대상: 단장 포함 전 직원(2026-10-07 결정) · 연차는 시간 단위(하루 7시간) · 시간외는 승인된 결재 문서에서 센다" },
   { id: "roster", g: "hr", name: "사람 명부", type: "ledger", status: "done",
@@ -518,22 +555,33 @@ const ITEMS = [
     links: [{ label: "고객 대장 열기 (운영관리자 로그인)", href: "admin.html#cust" }] },
   { id: "promo", g: "comm", name: "홍보콘텐츠관리", type: "ledger", status: "todo", fields: "유형(홈페이지/SNS/소식지) · 제목 · 게시일 · 담당자 · 링크" },
   { id: "cases", g: "comm", name: "성과사례관리", type: "ledger", status: "todo", fields: "사례제목 · 관련사업ID · 관련참여자ID · 내용요약" },
-  // 전사도구
-  { id: "talk", g: "tools", name: "단톡 (사내 메신저)", type: "tool", status: "wip",
-    fields: "메신저방(종류 · 방이름) · 방멤버(직원이메일 · 읽은시각) · 메시지(보낸사람 · 내용 · 보낸시각 · 지운시각)",
-    note: "1차 완료: 1:1 대화 · 안읽음 숫자 · 기본 단체방 7개(전체·사무국·5개 센터) · Enter 보내기/Shift+Enter 줄바꿈<br>2차 예정: 지원단 알림방 · 업무시간 밖(21시~08시) 알림 숨김 · 180일 보관 후 자동 삭제",
+  // 전사도구 — 모든 직원이 매일 쓰는 것(4회차 「전자결재와 밥톡」)
+  { id: "approval", g: "tools", name: "전자결재", type: "tool", status: "done",
+    fields: "결재문서(문서번호 · 종류 · 기안자 · 내용 · 첨부 · 상태 · 부서장/단장 결재일시 · 수정 이력) · 결재선 = 부서 — Supabase",
+    note: "문서: 일반 기안(품의·사업계획·결과보고·공문·협조) · 연차(시간 단위) · 시간외근무 · 지출결의 · 파일 첨부<br>기안 → 부서장 → 단장 · 자기 결재 방지 · 전결 · 결재자 수정·이력 · 반려 후 고쳐 다시 올리기 · 본인 회수·취소 · 단톡 알림<br>남은 것: 출장·외근 · 예산집행 짝맞추기",
+    links: [{ label: "전자결재 열기", href: "approval.html" }, { label: "결재선 보기", href: "approval.html#lines" }] },
+  { id: "talk", g: "tools", name: "단톡 (사내 메신저)", type: "tool", status: "done",
+    fields: "메신저방(종류 · 방이름) · 방멤버(직원 · 읽은시각) · 메시지(보낸사람 · 내용 · 첨부 · 보낸시각 · 지운시각) — Supabase",
+    note: "1:1·단체방(전체·사무국·5개 센터) · 안읽음 숫자 · 사진·파일 첨부 · 결재 알림방<br>휴대폰 앱 설치·알림(21시~08시 숨김) · 180일 지난 대화 자동 삭제(매일 새벽 3시)",
     links: [{ label: "단톡 열기", href: "talk.html" }] },
   // 설정
   { id: "staff", g: "common", name: "직원마스터 (권한관리)", type: "master", status: "done", fields: "직원ID · 이름 · 이메일 · 소속 · 직급 · 권한레벨",
     note: "🔗 운영관리자 화면 '직원 권한 관리' 탭 (대표·사무국 전용)",
     links: [{ label: "직원 권한 관리", href: "admin.html#staff" }] },
-  { id: "org", g: "common", name: "조직단위마스터", type: "master", status: "todo", fields: "조직단위명(사무국 / 5개 센터)" },
+  { id: "org", g: "common", name: "조직단위마스터", type: "master", status: "done",
+    fields: "부서(단장 · 사무국 · 5개 센터) · 부서장 · 근태 전결 · 지출 전결 한도 — Supabase departments",
+    note: "결재선의 기준 — 부서장을 바꾸면 결재선이 함께 바뀐다(단장·사무국이 전자결재 › 결재선 탭에서 관리)",
+    links: [{ label: "결재선 탭 열기", href: "approval.html#lines" }] },
   { id: "map_edit", g: "common", name: "ERP 지도 편집", type: "tool", status: "done", action: "editor",
     fields: "칸 이름 고치기 · 끌어서 자리 옮기기 · 눌러서 색 바꾸기 · 칸 추가/삭제 · JSON/PNG 내보내기",
     note: "🖱️ 고친 내용은 이 브라우저에 자동 저장됩니다" },
 ];
 
-const DEFAULT_FAV = ["talk", "notice", "space_rsv", "suggest", "deadline", "budget_exec"];
+const DEFAULT_FAV = ["approval", "talk", "notice", "space_rsv", "suggest", "money_ledger"];
+
+/* 같은 분류 안에서는 완성 → 진행중 → 미완성 순으로 놓는다(같은 상태끼리는 위 목록 순서 그대로) */
+const STATUS_ORDER = { done: 0, wip: 1, todo: 2 };
+const byStatus = (a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
 
 /* 기본 지도 트리를 만든다. kind: root > section > group > item */
 function buildDefault() {
@@ -542,7 +590,7 @@ function buildDefault() {
     const sec = { id: s.id, kind: "section", t: s.t, tag: s.tag, cls: s.cls, desc: s.desc, c: s.c, side: s.side, kids: [] };
     s.groups.forEach(g => {
       const grp = { id: g, kind: "group", t: GROUP_TITLES[g], c: null, kids: [] };
-      ITEMS.filter(i => i.g === g).forEach(i => grp.kids.push({
+      ITEMS.filter(i => i.g === g).sort(byStatus).forEach(i => grp.kids.push({
         id: i.id, kind: "item", t: i.name, st: i.status, type: i.type, fields: i.fields,
         note: i.note || "", links: i.links || [], action: i.action || null, c: null, kids: [],
       }));
@@ -714,6 +762,7 @@ function cardHtml(it) {
   if (it.action === "editor") links = `<a href="#edit">편집기 열기</a>`;
   if (it.action === "people") links = `<a href="#people">${esc(it.t)} 열기</a>`;
   if (it.action === "datastatus") links = `<a href="#datastatus">${esc(it.t)} 열기</a>`;
+  if (it.action === "moneyledger") links = `<a href="#moneyledger">${esc(it.t)} 안내 열기</a>`;
   if (it.action && it.action.indexOf("ledger-") === 0)   // 문의 대장·고객 대장: 지도 안에서 바로 열림(로그인 없음)
     links = `<a href="#${it.action}">${esc(it.t)} 열기</a>` + (it.links || []).map(l => `<a class="alt" href="${l.href}">${esc(l.label)}</a>`).join("");
   const note = it.note ? (it.custom ? esc(it.note) : it.note) : "";
@@ -772,7 +821,10 @@ function showView(v, sub) {
   $("#view-ledger").style.display = v === "ledger" ? "" : "none";
   $("#view-people").style.display = v === "people" ? "" : "none";
   $("#view-datastatus").style.display = v === "datastatus" ? "" : "none";
-  if (v === "datastatus") {
+  $("#view-moneyledger").style.display = v === "moneyledger" ? "" : "none";
+  if (v === "moneyledger") {
+    selected = "money_ledger"; renderMenu();
+  } else if (v === "datastatus") {
     selected = "data_status"; renderMenu();
     if (typeof renderDataStatus === "function") renderDataStatus();
   } else if (v === "people") {
@@ -784,16 +836,18 @@ function showView(v, sub) {
     requestAnimationFrame(edFit);   // 화면 크기가 안정된 뒤 한 번 더 맞춤
   } else if (v === "ledger") {
     setLedgerTab(sub || "inq"); selected = LEDGER_ITEM[sub || "inq"]; renderMenu();
-  } else if (selected === "map_edit" || selected === "inquiry_ledger" || selected === "customer_ledger" || selected === "roster" || selected === "data_status") { selected = null; renderMenu(); }
+  } else if (selected === "map_edit" || selected === "inquiry_ledger" || selected === "customer_ledger" || selected === "roster" || selected === "data_status" || selected === "money_ledger") { selected = null; renderMenu(); }
   window.scrollTo({ top: 0 });
 }
 function viewFromHash() {
   const m = /^#ledger-(inq|cust)$/.exec(location.hash);
-  if (location.hash === "#datastatus") showView("datastatus");
+  if (location.hash === "#moneyledger") showView("moneyledger");
+  else if (location.hash === "#datastatus") showView("datastatus");
   else if (location.hash === "#people") showView("people");
   else if (m) showView("ledger", m[1]); else showView(location.hash === "#edit" ? "edit" : "map");
 }
 function openLedger(sub) { showView("ledger", sub); try { const h = "#ledger-" + sub; if (location.hash !== h) history.replaceState(null, "", h); } catch (e) {} }
+function openMoneyLedger() { showView("moneyledger"); try { if (location.hash !== "#moneyledger") history.replaceState(null, "", "#moneyledger"); } catch (e) {} }
 function openDataStatus() { showView("datastatus"); try { if (location.hash !== "#datastatus") history.replaceState(null, "", "#datastatus"); } catch (e) {} }
 function openPeople() { showView("people"); try { if (location.hash !== "#people") history.replaceState(null, "", "#people"); } catch (e) {} }
 function openEditor() { if (location.hash !== "#edit") location.hash = "edit"; else showView("edit"); }
@@ -806,11 +860,14 @@ document.addEventListener("click", (e) => {   // 앱 미리보기처럼 주소(#
   if (pa) { e.preventDefault(); openPeople(); }
   const da = e.target.closest && e.target.closest('a[href="#datastatus"]');
   if (da) { e.preventDefault(); openDataStatus(); }
+  const ma = e.target.closest && e.target.closest('a[href="#moneyledger"]');
+  if (ma) { e.preventDefault(); openMoneyLedger(); }
 });
 
 function openItem(id) {
   const it = itemById(id); if (!it) return;
   if (it.action === "editor") { openEditor(); return; }
+  if (it.action === "moneyledger") { openMoneyLedger(); return; }
   if (it.action === "datastatus") { openDataStatus(); return; }
   if (it.action === "people") { openPeople(); return; }
   if (it.action && it.action.indexOf("ledger-") === 0) { openLedger(it.action.slice(7)); return; }
@@ -841,6 +898,7 @@ $("#ed-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor
 $("#lg-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
 $("#pp-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
 $("#ds-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
+$("#ml-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
 document.querySelectorAll("[data-lgtab]").forEach(b => b.addEventListener("click", () => openLedger(b.dataset.lgtab)));
 document.addEventListener("click", (e) => { if (e.target.closest("[data-from-erp]")) markFromErp(); });
 
