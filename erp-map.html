@@ -414,6 +414,14 @@
       </div>
     </div>
 
+    <!-- ══ 화면 7: 기회의 장부 (공고 판정 · 연습용 · 로그인 없이 지도에서 바로) ══ -->
+    <div id="view-opps" style="display:none;">
+      <div class="pp-wrap">
+        <div class="pp-bar"><a href="#top" id="op-back">← ERP 지도로</a><span>⑧ 소통·확산 › 기회의 장부 (연습용 · 로그인 없이 열립니다)</span></div>
+        <div class="pp-note">🔒 기회의 장부는 우리 회사 기준 판정이 들어가는 화면이라 <b>내 컴퓨터에서만</b> 엽니다. 공개 사이트에는 올리지 않습니다.</div>
+      </div>
+    </div>
+
     <!-- ══ 화면 6: 돈의 장부 안내 (표 이름 · 누가 보나 · 거래는 클로드가 넣는다) — 금액·거래처·계좌번호는 적지 않음 ══ -->
     <div id="view-moneyledger" style="display:none;">
       <div class="pp-wrap">
@@ -576,7 +584,12 @@ const ITEMS = [
     note: "🔒 내 컴퓨터 전용 문서입니다 — 공개 사이트에는 올리지 않습니다" },
   { id: "promo", g: "comm", name: "홍보콘텐츠관리", type: "ledger", status: "todo", fields: "유형(홈페이지/SNS/소식지) · 제목 · 게시일 · 담당자 · 링크" },
   { id: "cases", g: "comm", name: "성과사례관리", type: "ledger", status: "todo", fields: "사례제목 · 관련사업ID · 관련참여자ID · 내용요약" },
-  // 전사도구 — 모든 직원이 매일 쓰는 것(4회차 「전자결재와 밥톡」)
+  { id: "radar_grants", g: "comm", name: "공고 레이더 (깃헙 액션 · 매일 아침)", type: "auto", status: "done",
+    fields: "공고 받기 → 우리 조건으로 거르기 → 후보를 이슈로 알림 (매일 아침)",
+    note: "🔒 내 컴퓨터 전용 문서입니다 — 공개 사이트에는 올리지 않습니다" },
+  { id: "opps", g: "comm", name: "기회의 장부 (지원사업 · 공공입찰)", type: "ledger", status: "done",
+    fields: "공고 판정(칸 5개 × ✓ ✗ 모름) · 진행 상태 · 전화할 칸 · 마감 캘린더",
+    note: "🔒 내 컴퓨터 전용 문서입니다 — 공개 사이트에는 올리지 않습니다" },
   { id: "approval", g: "tools", name: "전자결재", type: "tool", status: "done",
     fields: "결재문서(문서번호 · 종류 · 기안자 · 내용 · 첨부 · 상태 · 부서장/단장 결재일시 · 수정 이력) · 결재선 = 부서 — Supabase",
     note: "문서: 일반 기안(품의·사업계획·결과보고·공문·협조) · 연차(시간 단위) · 시간외근무 · 지출결의 · 파일 첨부<br>기안 → 부서장 → 단장 · 자기 결재 방지 · 전결 · 결재자 수정·이력 · 반려 후 고쳐 다시 올리기 · 본인 회수·취소 · 단톡 알림<br>남은 것: 출장·외근 · 예산집행 짝맞추기",
@@ -614,7 +627,7 @@ function buildDefault() {
     const sec = { id: s.id, kind: "section", t: s.t, tag: s.tag, cls: s.cls, desc: s.desc, c: s.c, side: s.side, kids: [] };
     s.groups.forEach(g => {
       const grp = { id: g, kind: "group", t: GROUP_TITLES[g], c: null, kids: [] };
-      ITEMS.filter(i => i.g === g).sort(byStatus).forEach(i => grp.kids.push({
+      ITEMS.filter(i => i.g === g).sort((a, b) => (a.bottom ? 1 : 0) - (b.bottom ? 1 : 0) || byStatus(a, b)).forEach(i => grp.kids.push({
         id: i.id, kind: "item", t: i.name, st: i.status, type: i.type, fields: i.fields,
         note: i.note || "", links: i.links || [], action: i.action || null, c: null, kids: [],
       }));
@@ -787,6 +800,7 @@ function cardHtml(it) {
   if (it.action === "people") links = `<a href="#people">${esc(it.t)} 열기</a>`;
   if (it.action === "datastatus") links = `<a href="#datastatus">${esc(it.t)} 열기</a>`;
   if (it.action === "moneyledger") links = `<a href="#moneyledger">${esc(it.t)} 안내 열기</a>`;
+  if (it.action === "opps") links = `<a href="#opps">${esc(it.t)} 열기</a>`;
   if (it.action && it.action.indexOf("ledger-") === 0)   // 문의 대장·고객 대장: 지도 안에서 바로 열림(로그인 없음)
     links = `<a href="#${it.action}">${esc(it.t)} 열기</a>` + (it.links || []).map(l => `<a class="alt" href="${l.href}">${esc(l.label)}</a>`).join("");
   const note = it.note ? (it.custom ? esc(it.note) : it.note) : "";
@@ -846,8 +860,12 @@ function showView(v, sub) {
   $("#view-people").style.display = v === "people" ? "" : "none";
   $("#view-datastatus").style.display = v === "datastatus" ? "" : "none";
   $("#view-moneyledger").style.display = v === "moneyledger" ? "" : "none";
+  $("#view-opps").style.display = v === "opps" ? "" : "none";
   if (v === "moneyledger") {
     selected = "money_ledger"; renderMenu();
+  } else if (v === "opps") {
+    selected = "opps"; renderMenu();
+    if (typeof renderOpps === "function") renderOpps();
   } else if (v === "datastatus") {
     selected = "data_status"; renderMenu();
     if (typeof renderDataStatus === "function") renderDataStatus();
@@ -860,19 +878,21 @@ function showView(v, sub) {
     requestAnimationFrame(edFit);   // 화면 크기가 안정된 뒤 한 번 더 맞춤
   } else if (v === "ledger") {
     setLedgerTab(sub || "inq"); selected = LEDGER_ITEM[sub || "inq"]; renderMenu();
-  } else if (selected === "map_edit" || selected === "inquiry_ledger" || selected === "customer_ledger" || selected === "roster" || selected === "data_status" || selected === "money_ledger") { selected = null; renderMenu(); }
+  } else if (selected === "map_edit" || selected === "inquiry_ledger" || selected === "customer_ledger" || selected === "roster" || selected === "data_status" || selected === "money_ledger" || selected === "opps") { selected = null; renderMenu(); }
   window.scrollTo({ top: 0 });
 }
 function viewFromHash() {
   const m = /^#ledger-(inq|cust)$/.exec(location.hash);
   if (location.hash === "#moneyledger") showView("moneyledger");
   else if (location.hash === "#datastatus") showView("datastatus");
+  else if (location.hash === "#opps") showView("opps");
   else if (location.hash === "#people") showView("people");
   else if (m) showView("ledger", m[1]); else showView(location.hash === "#edit" ? "edit" : "map");
 }
 function openLedger(sub) { showView("ledger", sub); try { const h = "#ledger-" + sub; if (location.hash !== h) history.replaceState(null, "", h); } catch (e) {} }
 function openMoneyLedger() { showView("moneyledger"); try { if (location.hash !== "#moneyledger") history.replaceState(null, "", "#moneyledger"); } catch (e) {} }
 function openDataStatus() { showView("datastatus"); try { if (location.hash !== "#datastatus") history.replaceState(null, "", "#datastatus"); } catch (e) {} }
+function openOpps() { showView("opps"); try { if (location.hash !== "#opps") history.replaceState(null, "", "#opps"); } catch (e) {} }
 function openPeople() { showView("people"); try { if (location.hash !== "#people") history.replaceState(null, "", "#people"); } catch (e) {} }
 function openEditor() { if (location.hash !== "#edit") location.hash = "edit"; else showView("edit"); }
 function closeEditor() { try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {} showView("map"); }
@@ -886,6 +906,8 @@ document.addEventListener("click", (e) => {   // 앱 미리보기처럼 주소(#
   if (da) { e.preventDefault(); openDataStatus(); }
   const ma = e.target.closest && e.target.closest('a[href="#moneyledger"]');
   if (ma) { e.preventDefault(); openMoneyLedger(); }
+  const oa = e.target.closest && e.target.closest('a[href="#opps"]');
+  if (oa) { e.preventDefault(); openOpps(); }
 });
 
 function openItem(id) {
@@ -893,6 +915,7 @@ function openItem(id) {
   if (it.action === "editor") { openEditor(); return; }
   if (it.action === "moneyledger") { openMoneyLedger(); return; }
   if (it.action === "datastatus") { openDataStatus(); return; }
+  if (it.action === "opps") { openOpps(); return; }
   if (it.action === "people") { openPeople(); return; }
   if (it.action && it.action.indexOf("ledger-") === 0) { openLedger(it.action.slice(7)); return; }
   selected = id; renderMenu();
@@ -923,6 +946,7 @@ $("#lg-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor
 $("#pp-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
 $("#ds-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
 $("#ml-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
+$("#op-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
 document.querySelectorAll("[data-lgtab]").forEach(b => b.addEventListener("click", () => openLedger(b.dataset.lgtab)));
 document.addEventListener("click", (e) => { if (e.target.closest("[data-from-erp]")) markFromErp(); });
 
