@@ -1,8 +1,10 @@
 /*
  * 기회의 장부 (운영관리자 › 기회의 장부) — 9회차. 공고를 우리 회사 기준 ✓ ✗ 모름으로 판정한 표를 보여 준다.
  *
- * · 판정 내용은 이 파일에 없다. 수파베이스(acais-erp)의 opps · opp_stage · opp_meta 표에서 읽어 오며,
- *   표는 RLS 로 단장 · 사무국(is_office)만 읽고 쓴다. 이 코드는 공개돼도 내용은 새지 않는다(로그아웃 · 방문자는 0줄/거부).
+ * · 판정 내용은 이 파일에 없다. 수파베이스(acais-erp)의 opps · opp_stage · opp_meta 표에서 읽어 온다.
+ * · 두 가지 모양: 직원용(window.loadOpps — 운영관리자 탭, 단장 · 사무국 로그인 · 진행 상태 저장 · 저장소 링크)과
+ *   공개용(window.loadOppsPublic — site/opps.html, 누구나 읽기만. 진행 상태 · 저장소 링크는 보이지 않는다).
+ *   공개 범위는 015_opps_public.sql 이 정한다(방문자는 opps · opp_meta 의 funnel · radar 만 읽고 쓰기는 모두 막힘).
  * · 규칙: 한 칸이라도 ✗ 이면 ✗ · ✗ 없이 모름이 있으면 「모름(확인 필요)」 · 전부 ✓ 일 때만 ✓. 모름은 ✓로 올리지 않는다.
  * · 마감 D-day 는 저장하지 않고 오늘 날짜로 그때그때 센다. 진행 상태(발견됨 · 검토 중 · 신청함 · 넣지 않음)는 opp_stage 에 저장돼 사무국이 함께 본다.
  * · 판정은 공고 요약 기준이다. 마감 · 자격 · 한도는 신청 직전 첨부 공고문 원문과 담당기관 문의로 다시 확인한다.
@@ -17,7 +19,8 @@
   const HEAD = ["소재지", "규모", "업종", "업력", "제외·재무"];
   const short = (t, n) => t.length > n ? t.slice(0, n) + "…" : t;
 
-  let me = null, rows = [], stage = {}, meta = {};
+  let me = null, rows = [], stage = {}, meta = {}, mode = "staff", rootId = "tab-opps";
+  const pub = () => mode === "public";
 
   const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
   const daysLeft = c => { const p = c.split("-"); return Math.round((new Date(+p[0], +p[1] - 1, +p[2]) - today()) / 864e5); };
@@ -54,7 +57,7 @@
     const list = rows.slice().sort((a, b) => (KIND_RANK[a.kind] - KIND_RANK[b.kind]) || ((a.close_on || "9999") < (b.close_on || "9999") ? -1 : 1));
     return `<div class="op-wrap"><table><thead><tr><th style="width:27%">공고</th><th style="width:96px">마감</th>${HEAD.map(h => `<th>${h}</th>`).join("")}<th>판정</th></tr></thead><tbody>` +
       list.map(g => `<tr><td>${kindTag(g.kind)}<b>${E(g.title)}</b><br><span class="op-sm">${E(g.org)}</span>${g.url ? ` <a href="${E(g.url)}" target="_blank" rel="noopener" style="font-size:12px">공고 보기 ↗</a>` : ""}
-          <div class="op-stage" data-id="${E(g.id)}">${STAGES.map(s => `<button type="button" data-st="${s[0]}"${s[0] === stageOf(g.id) ? ' class="on"' : ""}>${s[1]}</button>`).join("")}</div></td>
+          ${pub() ? "" : `<div class="op-stage" data-id="${E(g.id)}">${STAGES.map(s => `<button type="button" data-st="${s[0]}"${s[0] === stageOf(g.id) ? ' class="on"' : ""}>${s[1]}</button>`).join("")}</div>`}</td>
         <td>${dday(g.close_on)}</td>
         ${g.cells.map(c => `<td>${chip(c[0])}<div class="op-cellnote">${E(c[1])}</div></td>`).join("")}
         <td>${vchip(verdict(g.cells))}</td></tr>`).join("") + `</tbody></table></div>` +
@@ -65,9 +68,10 @@
     const open = rows.filter(g => verdict(g.cells) !== "n" && stageOf(g.id) !== "skipped");
     const week = open.filter(g => { if (!g.close_on) return false; const n = daysLeft(g.close_on); return n >= 0 && n <= 7; });
     const c = [["수주 기회", open.filter(g => g.kind === "revenue").length], ["현금성 지원", open.filter(g => g.kind === "cash").length],
-      ["이번 주 마감", week.length], ["아직 안 본 것", open.filter(g => stageOf(g.id) === "found").length]];
+      ["이번 주 마감", week.length]];
+    if (!pub()) c.push(["아직 안 본 것", open.filter(g => stageOf(g.id) === "found").length]);
     return `<div class="op-sum">${c.map(x => `<div class="op-stat"><b>${x[1]}건</b><span>${x[0]}</span></div>`).join("")}</div>
-      <p class="op-sm" style="margin:0 0 12px">✗ 로 판정된 것과 「넣지 않음」은 세지 않습니다. 상태를 바꾸면 숫자가 바뀝니다.</p>`;
+      <p class="op-sm" style="margin:0 0 12px">${pub() ? "✗ 로 판정된 것은 세지 않습니다." : "✗ 로 판정된 것과 「넣지 않음」은 세지 않습니다. 상태를 바꾸면 숫자가 바뀝니다."}</p>`;
   }
 
   function callRows() {
@@ -88,17 +92,17 @@
   }
 
   function draw() {
-    const root = $("tab-opps"); if (!root) return;
+    const root = $(rootId); if (!root) return;
     css();
-    const cal = icsData(), calls = callRows(), f = meta.funnel, r = meta.radar;
+    const cal = icsData(), calls = callRows(), f = meta.funnel, r = meta.radar, links = meta.radar_links;
     root.innerHTML = `
-      <div class="op-note"><b>단장 · 사무국만 보는 화면입니다.</b> 공고를 우리 지원단(안성시 위탁 중간지원조직) 기준으로 ✓ ✗ 모름으로 판정한 표입니다.
+      <div class="op-note">${pub() ? "<b>누구나 볼 수 있는 화면입니다.</b>" : "<b>단장 · 사무국 화면입니다 — 진행 상태를 함께 적습니다.</b>"} 공고를 우리 지원단(안성시 위탁 중간지원조직) 기준으로 ✓ ✗ 모름으로 판정한 표입니다.
         판정은 공고 요약 기준이라 <b>마감 · 자격 · 한도는 신청 직전 첨부 공고문 원문과 담당기관 문의로 다시 확인</b>합니다. 법인 형태 · 업종 · 설립연도는 아직 몰라 「모름」입니다.</div>
       ${stats()}
       ${r ? `<div class="op-box"><h2>자동 레이더 — 매일 아침 후보가 이슈로 올라옵니다</h2>
         <div style="font-size:13.5px;line-height:1.9"><span class="op-chip ok">연결됨</span><span class="op-chip ok">${E(r.first_run)} 수동 실행 ${E(r.first_run_result)}</span><span class="op-chip blue">${E(r.schedule)} 자동</span><br>
-          깃헙 액션이 기업마당 공고를 받아 우리 조건으로 거르고, 후보를 비공개 저장소의 이슈로 올립니다(GitHub이 메일로도 알려 줍니다). 이 장부는 그 후보를 사람이 ✓ ✗ 모름으로 판정해 옮겨 적는 곳입니다.
-          <div style="margin-top:6px"><a href="${E(r.issues)}" target="_blank" rel="noopener">오늘의 후보 이슈 보기 ↗</a> · <a href="${E(r.actions)}" target="_blank" rel="noopener">실행 기록 보기 ↗</a></div></div>
+          깃헙 액션이 기업마당 공고를 받아 우리 조건으로 거르고, 후보를 이슈로 올립니다. 이 장부는 그 후보를 사람이 ✓ ✗ 모름으로 판정해 옮겨 적는 곳입니다.
+          ${links && !pub() ? `<div style="margin-top:6px"><a href="${E(links.issues)}" target="_blank" rel="noopener">오늘의 후보 이슈 보기 ↗</a> · <a href="${E(links.actions)}" target="_blank" rel="noopener">실행 기록 보기 ↗</a></div>` : ""}</div>
         <div class="op-sm" style="margin-top:8px">기계는 거르기까지만 합니다 — 후보는 「신청 가능」이 아닙니다. 같은 후보가 매일 올라오니 이미 본 이슈는 닫으세요. 남은 것: ${E(r.todo)}.</div></div>` : ""}
       ${f ? `<div class="op-box"><h2>레이더가 거르는 모습 — ${E(f.asof)} ${E(f.source)}</h2>
         <div class="op-fun">${f.steps.map((s, i) => (i ? "<i>→</i>" : "") + `<div><b>${Number(s[1]).toLocaleString()}</b><span>${E(s[0])}</span></div>`).join("")}</div>
@@ -114,9 +118,9 @@
         <div class="op-sm" style="margin-top:8px">공고 요약으로 정리한 예시입니다 ★원문 확인 전. 지원단이 직접 신청하는 것과 센터가 안내하는 것은 별개의 일입니다.</div></div>
       <div class="op-box"><h2>전화로 물어볼 것 — 모름 칸 모음</h2>
         <div class="op-wrap"><table style="min-width:760px"><thead><tr><th style="width:30%">공고</th><th style="width:12%">칸</th><th>물어볼 것</th><th style="width:24%">어디에</th></tr></thead><tbody>${calls.map(c => `<tr><td>${E(short(c[0].title, 30))}</td><td>${E(c[1])}</td><td>${E(c[2])}</td><td>${E(c[0].contact)}</td></tr>`).join("")}</tbody></table></div>
-        <div class="op-sm" style="margin-top:8px">✗ 로 끝난 공고는 빠집니다. 먼저 첨부 공고문에서 찾아보고, 없으면 전화합니다. 법인 형태 · 업종 · 설립연도는 공고가 아니라 <b>우리 쪽 정보</b>라서 대표님께 먼저 확인합니다.</div></div>
+        <div class="op-sm" style="margin-top:8px">✗ 로 끝난 공고는 빠집니다. 먼저 첨부 공고문에서 찾아보고, 없으면 전화합니다. 법인 형태 · 업종 · 설립연도는 공고가 아니라 <b>우리 쪽 정보</b>라서 먼저 확인합니다.</div></div>
       <div class="op-box"><h2>마감 캘린더에 넣기</h2>
-        <p class="op-sm" style="margin:0 0 8px">✗ 가 아니고 「넣지 않음」도 아닌 공고 중 <b>마감 날짜가 있는 ${cal.n}건</b>을 캘린더 파일(.ics)로 내려받습니다. 구글 캘린더에 가져오면 <b>14일 전 · 7일 전 알림</b>이 함께 들어갑니다. 「예산 소진시까지」 공고는 날짜가 없어 빠집니다.</p>
+        <p class="op-sm" style="margin:0 0 8px">✗ 가 아니${pub() ? "" : "고 「넣지 않음」도 아닌"} 공고 중 <b>마감 날짜가 있는 ${cal.n}건</b>을 캘린더 파일(.ics)로 내려받습니다. 구글 캘린더에 가져오면 <b>14일 전 · 7일 전 알림</b>이 함께 들어갑니다. 「예산 소진시까지」 공고는 날짜가 없어 빠집니다.</p>
         <button type="button" class="op-btn" id="op-ics">📅 마감 ${cal.n}건 캘린더 파일 내려받기</button></div>
       <div class="op-note" style="background:#eef3ff;border-color:#c7d6f5"><b>규칙 한 줄</b> — 한 칸이라도 ✗ 이면 ✗ · ✗ 없이 모름이 있으면 「모름(확인 필요)」 · 전부 ✓ 일 때만 ✓. 모름은 ✓로 올리지 않습니다.</div>`;
     root.querySelectorAll(".op-stage").forEach(box => box.addEventListener("click", async e => {
@@ -134,21 +138,22 @@
     });
   }
 
-  /** admin.html 이 로그인(단장·사무국)을 확인한 뒤 부른다 */
-  window.loadOpps = async function (staffRow) {
-    me = staffRow;
-    const root = $("tab-opps"); if (!root) return;
+  async function load() {
+    const root = $(rootId); if (!root) return;
     root.innerHTML = '<p class="op-sm">불러오는 중...</p>';
-    const [o, s, m] = await Promise.all([
-      sb.from("opps").select("*").order("sort"),
-      sb.from("opp_stage").select("opp_id,stage"),
-      sb.from("opp_meta").select("key,value"),
-    ]);
-    const err = o.error || s.error || m.error;
+    const q = [sb.from("opps").select("*").order("sort"), sb.from("opp_meta").select("key,value")];
+    if (!pub()) q.push(sb.from("opp_stage").select("opp_id,stage"));
+    const [o, m, s] = await Promise.all(q);
+    const err = o.error || m.error || (s && s.error);
     if (err) { root.innerHTML = `<p class="op-sm" style="color:#c4301c">${E(sbErr(err))}</p>`; return; }
     rows = o.data || [];
-    stage = {}; (s.data || []).forEach(x => { stage[x.opp_id] = x.stage; });
+    stage = {}; if (s) (s.data || []).forEach(x => { stage[x.opp_id] = x.stage; });
     meta = {}; (m.data || []).forEach(x => { meta[x.key] = x.value; });
     draw();
-  };
+  }
+
+  /** admin.html 이 로그인(단장·사무국)을 확인한 뒤 부른다 — 진행 상태 저장 · 저장소 링크가 있는 직원용 */
+  window.loadOpps = function (staffRow) { me = staffRow; mode = "staff"; rootId = "tab-opps"; return load(); };
+  /** site/opps.html — 로그인 없이 누구나 읽기만(진행 상태 · 저장소 링크는 보이지 않는다) */
+  window.loadOppsPublic = function (id) { me = null; mode = "public"; rootId = id || "opps-root"; return load(); };
 })();

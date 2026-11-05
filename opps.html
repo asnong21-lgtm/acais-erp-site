@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>기회의 장부 - 시민활동통합지원단</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="opps">
+
+<div id="site-header-mount"></div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="crumb">소통·확산</div>
+    <h1>기회의 장부</h1>
+  </div>
+</section>
+
+<section class="content">
+  <div class="wrap">
+    <!-- 정부지원사업 · 공공입찰 공고를 우리 지원단 기준 ✓ ✗ 모름으로 판정한 장부. 내용은 수파베이스에서 읽어 오고(누구나 읽기 전용), assets/opps.js 가 그린다 -->
+    <div id="opps-root"><p style="color:var(--sub);">불러오는 중...</p></div>
+    <p style="margin-top:16px;font-size:12px;color:var(--sub);line-height:1.7;">
+      <a href="erp-map.html">← ERP 지도로</a> · 이 화면은 읽기 전용입니다. 판정은 공고 요약 기준이며, 마감 · 자격 · 한도는 신청 직전 첨부 공고문 원문과 담당기관 문의로 다시 확인하세요.
+    </p>
+  </div>
+</section>
+
+<div id="site-footer-mount"></div>
+
+<script src="assets/site.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/sb.js"></script>
+<script src="assets/opps.js"></script>
+<script>
+  if (window.loadOppsPublic) window.loadOppsPublic("opps-root");
+  else document.getElementById("opps-root").innerHTML = "<p>화면을 불러오지 못했습니다.</p>";
+</script>
+</body>
+</html>
