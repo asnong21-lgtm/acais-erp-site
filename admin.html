@@ -62,6 +62,7 @@
     <button class="admin-tab" data-tab="sug">건의사항 관리</button>
     <button class="admin-tab" data-tab="inq">문의 대장</button>
     <button class="admin-tab" data-tab="cust">고객 대장</button>
+    <button class="admin-tab" data-tab="opps" id="opps-tab-btn" style="display:none;">기회의 장부</button>
     <button class="admin-tab" data-tab="notice">공지사항 관리</button>
     <button class="admin-tab" data-tab="staff" id="staff-tab-btn" style="display:none;">직원 권한 관리</button>
     <button class="admin-tab" data-tab="me">내 계정</button>
@@ -91,6 +92,9 @@
       <!-- 문의 대장·고객 대장: 홈페이지 문의(acais-inquiry)를 assets/inquiry-live.js 가 이 칸에 채운다. 연습용 대장은 ERP 지도 안에 있다 -->
       <div id="tab-inq" class="admin-panel lg" style="display:none;"></div>
       <div id="tab-cust" class="admin-panel lg" style="display:none;"></div>
+
+      <!-- 기회의 장부: 공고 판정(우리 회사 기준). 내용은 이 HTML 이 아니라 수파베이스 표(opps)에서 단장·사무국 로그인 뒤에 읽어 온다 — assets/opps.js -->
+      <div id="tab-opps" class="admin-panel" style="display:none;"></div>
 
       <div id="tab-notice" class="admin-panel" style="display:none;">
         <div class="panel" style="margin-bottom:16px;" id="notice-write-panel">
@@ -187,6 +191,7 @@
 <script src="assets/inquiry-live.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/sb.js"></script>
+<script src="assets/opps.js"></script>
 <script>
 (function () {
   const ROLE_LABEL = { owner: "단장", office: "사무국", center: "센터담당자", pending: "승인대기" };
@@ -227,13 +232,14 @@
     $("who-box").innerHTML = `${esc(me.name)} (${esc(ROLE_LABEL[me.role] || me.role)}${me.center ? "·" + esc(CENTER_LABEL[me.center] || me.center) : ""}) · <a href="#" id="logout-link" style="color:#fff; text-decoration:underline;">로그아웃</a>`;
     $("logout-link").addEventListener("click", e => { e.preventDefault(); logout(); });
     $("staff-tab-btn").style.display = isOffice ? "inline-block" : "none";
+    $("opps-tab-btn").style.display = isOffice ? "inline-block" : "none";   // 기회의 장부는 단장·사무국만(표도 RLS 로 같은 사람만 읽힌다)
     $("notice-write-panel").style.display = isOffice ? "block" : "none";
     $("notice-readonly-note").style.display = isOffice ? "none" : "block";
     // 단장 권한은 단장만 줄 수 있음
     $("s-role").querySelector('option[value="owner"]').disabled = me.role !== "owner";
     loadReservations(); loadSuggestions(); loadNotices();
     if (window.loadInquiryLedger) window.loadInquiryLedger(me);
-    if (isOffice) loadStaff();
+    if (isOffice) { loadStaff(); if (window.loadOpps) window.loadOpps(me); }
   }
 
   /* ── 대관신청 ── */

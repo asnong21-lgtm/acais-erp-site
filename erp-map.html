@@ -586,10 +586,13 @@ const ITEMS = [
   { id: "cases", g: "comm", name: "성과사례관리", type: "ledger", status: "todo", fields: "사례제목 · 관련사업ID · 관련참여자ID · 내용요약" },
   { id: "radar_grants", g: "comm", name: "공고 레이더 (깃헙 액션 · 매일 아침)", type: "auto", status: "done",
     fields: "공고 받기 → 우리 조건으로 거르기 → 후보를 이슈로 알림 (매일 아침)",
-    note: "🔒 내 컴퓨터 전용 문서입니다 — 공개 사이트에는 올리지 않습니다" },
-  { id: "opps", g: "comm", name: "기회의 장부 (지원사업 · 공공입찰)", type: "ledger", status: "done",
+    note: "🔒 판정 내용은 단장·사무국이 운영관리자에 로그인한 뒤에만 보입니다(수파베이스 표 · 방문자는 읽을 수 없음)",
+    links: [{ label: "기회의 장부 열기 (운영관리자 로그인)", href: "admin.html#opps" }] },
+  { id: "opps", g: "comm", name: "기회의 장부 (지원사업 · 공공입찰)", type: "ledger", status: "done", bottom: true,
     fields: "공고 판정(칸 5개 × ✓ ✗ 모름) · 진행 상태 · 전화할 칸 · 마감 캘린더",
-    note: "🔒 내 컴퓨터 전용 문서입니다 — 공개 사이트에는 올리지 않습니다" },
+    note: "🔒 판정 내용은 단장·사무국이 운영관리자에 로그인한 뒤에만 보입니다(수파베이스 표 · 방문자는 읽을 수 없음)",
+    links: [{ label: "기회의 장부 열기 (운영관리자 로그인)", href: "admin.html#opps" }] },
+  // 전사도구 — 모든 직원이 매일 쓰는 것(4회차 「전자결재와 밥톡」)
   { id: "approval", g: "tools", name: "전자결재", type: "tool", status: "done",
     fields: "결재문서(문서번호 · 종류 · 기안자 · 내용 · 첨부 · 상태 · 부서장/단장 결재일시 · 수정 이력) · 결재선 = 부서 — Supabase",
     note: "문서: 일반 기안(품의·사업계획·결과보고·공문·협조) · 연차(시간 단위) · 시간외근무 · 지출결의 · 파일 첨부<br>기안 → 부서장 → 단장 · 자기 결재 방지 · 전결 · 결재자 수정·이력 · 반려 후 고쳐 다시 올리기 · 본인 회수·취소 · 단톡 알림<br>남은 것: 출장·외근 · 예산집행 짝맞추기",
@@ -800,7 +803,8 @@ function cardHtml(it) {
   if (it.action === "people") links = `<a href="#people">${esc(it.t)} 열기</a>`;
   if (it.action === "datastatus") links = `<a href="#datastatus">${esc(it.t)} 열기</a>`;
   if (it.action === "moneyledger") links = `<a href="#moneyledger">${esc(it.t)} 안내 열기</a>`;
-  if (it.action === "opps") links = `<a href="#opps">${esc(it.t)} 열기</a>`;
+  if (it.action === "opps")   // 이 컴퓨터에서 바로 열리는 화면 + 웹(운영관리자 로그인)에서 여는 링크
+    links = `<a href="#opps">${esc(it.t)} 열기</a>` + (it.links || []).map(l => `<a class="alt" href="${l.href}">${esc(l.label)}</a>`).join("");
   if (it.action && it.action.indexOf("ledger-") === 0)   // 문의 대장·고객 대장: 지도 안에서 바로 열림(로그인 없음)
     links = `<a href="#${it.action}">${esc(it.t)} 열기</a>` + (it.links || []).map(l => `<a class="alt" href="${l.href}">${esc(l.label)}</a>`).join("");
   const note = it.note ? (it.custom ? esc(it.note) : it.note) : "";
