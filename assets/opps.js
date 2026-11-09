@@ -19,7 +19,7 @@
   const HEAD = ["소재지", "규모", "업종", "업력", "제외·재무"];
   const short = (t, n) => t.length > n ? t.slice(0, n) + "…" : t;
 
-  let me = null, rows = [], stage = {}, meta = {}, mode = "staff", rootId = "tab-opps";
+  let me = null, rows = [], cands = [], stage = {}, meta = {}, mode = "staff", rootId = "tab-opps";
   const pub = () => mode === "public";
 
   const today = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
@@ -51,6 +51,17 @@
       ".op-fun{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch;margin:4px 0 12px}.op-fun div{flex:1 1 130px;background:#f7f3ee;border:1px solid #e4ded5;border-radius:10px;padding:8px 10px;text-align:center}.op-fun div b{display:block;font-size:20px;color:#2b3a4e}.op-fun div span{font-size:12px;color:#6b7785}.op-fun i{align-self:center;color:#c67b3c;font-style:normal;font-weight:800}" +
       ".op-btn{border:0;background:#e8631c;color:#fff;border-radius:9px;padding:8px 16px;font:inherit;font-weight:700;cursor:pointer}";
     document.head.appendChild(s);
+  }
+
+  /** 자동 레이더가 매일 거른 후보(opp_candidates) — 장부에서 이미 판정한 공고는 배지로 표시 */
+  function candTable(kind) {
+    const have = {}; rows.forEach(g => { have[g.url] = true; });
+    const list = cands.filter(c => c.kind === kind).sort((a, b) => (a.close_on || "9999") < (b.close_on || "9999") ? -1 : (a.close_on || "9999") > (b.close_on || "9999") ? 1 : 0);
+    if (!list.length) return '<p class="op-sm" style="margin:0">없음</p>';
+    return `<div class="op-wrap"><table style="min-width:760px"><thead><tr><th style="width:96px">마감</th><th>공고명</th><th style="width:20%">접수처</th>${kind === "check" ? "<th style=\"width:16%\">확인할 것</th>" : ""}</tr></thead><tbody>` +
+      list.map(c => `<tr><td>${c.close_on ? dday(c.close_on) : `<span class="op-chip gray">${E(c.close_text || "날짜 없음")}</span>`}</td>
+        <td>${E(c.title)}${c.url ? ` <a href="${E(c.url)}" target="_blank" rel="noopener" style="font-size:12px">공고 보기 ↗</a>` : ""}${have[c.url] ? ' <span class="op-chip blue">장부에서 판정함</span>' : ""}</td>
+        <td>${E(c.org)}</td>${kind === "check" ? `<td>${E(c.note)}</td>` : ""}</tr>`).join("") + "</tbody></table></div>";
   }
 
   function table() {
@@ -104,6 +115,12 @@
           깃헙 액션이 기업마당 공고를 받아 우리 조건으로 거르고, 후보를 이슈로 올립니다. 이 장부는 그 후보를 사람이 ✓ ✗ 모름으로 판정해 옮겨 적는 곳입니다.
           ${links && !pub() ? `<div style="margin-top:6px"><a href="${E(links.issues)}" target="_blank" rel="noopener">오늘의 후보 이슈 보기 ↗</a> · <a href="${E(links.actions)}" target="_blank" rel="noopener">실행 기록 보기 ↗</a></div>` : ""}</div>
         <div class="op-sm" style="margin-top:8px">기계는 거르기까지만 합니다 — 후보는 「신청 가능」이 아닙니다. 같은 후보가 매일 올라오니 이미 본 이슈는 닫으세요. 남은 것: ${E(r.todo)}.</div></div>` : ""}
+      ${meta.radar_run || cands.length ? `<div class="op-box"><h2>오늘의 후보 — 자동 레이더가 매일 거른 공고</h2>
+        <p class="op-sm" style="margin:0 0 8px">${meta.radar_run ? `마지막 실행 <b>${E(meta.radar_run.day)}</b> · 수신 ${Number(meta.radar_run.recv || 0).toLocaleString()}건 → 접수중 ${Number(meta.radar_run.open || 0).toLocaleString()}건 → <b>후보 ${Number(meta.radar_run.cand || 0)}건</b> · 소재지 확인 필요 ${Number(meta.radar_run.check || 0)}건 · 제목에 우리 업종 말이 없어 뺀 것 ${Number(meta.radar_run.title_no || 0).toLocaleString()}건` : ""}
+          · 아래 후보는 <b>신청 가능이 아닙니다</b> — 공고 요약에는 요건이 없고 첨부 공고문에 있습니다. 마음에 드는 공고는 아래 장부에서 ✓ ✗ 모름으로 판정합니다.</p>
+        <h3 style="margin:10px 0 6px;font-size:13.5px">후보</h3>${candTable("cand")}
+        <h3 style="margin:14px 0 6px;font-size:13.5px">소재지 확인 필요 — 시·군 단위 공고일 수 있습니다</h3>${candTable("check")}
+        <div class="op-sm" style="margin-top:8px">같은 후보가 매일 다시 올라옵니다. 레이더는 제목으로 좁히는 도구라 놓치는 공고가 있을 수 있습니다. 가장 최근 실행에 없던 공고는 이 목록에서 빠집니다.</div></div>` : ""}
       ${f ? `<div class="op-box"><h2>레이더가 거르는 모습 — ${E(f.asof)} ${E(f.source)}</h2>
         <div class="op-fun">${f.steps.map((s, i) => (i ? "<i>→</i>" : "") + `<div><b>${Number(s[1]).toLocaleString()}</b><span>${E(s[0])}</span></div>`).join("")}</div>
         <div class="op-wrap"><table style="min-width:520px"><thead><tr><th>빠진 이유 — 지우지 않고 이유를 남깁니다</th><th style="width:100px">건수</th></tr></thead><tbody>${f.out.map(o => `<tr><td>${E(o[0])}</td><td>${Number(o[1]).toLocaleString()}</td></tr>`).join("")}</tbody></table></div>
@@ -141,12 +158,13 @@
   async function load() {
     const root = $(rootId); if (!root) return;
     root.innerHTML = '<p class="op-sm">불러오는 중...</p>';
-    const q = [sb.from("opps").select("*").order("sort"), sb.from("opp_meta").select("key,value")];
+    const q = [sb.from("opps").select("*").order("sort"), sb.from("opp_meta").select("key,value"), sb.from("opp_candidates").select("*").eq("active", true)];
     if (!pub()) q.push(sb.from("opp_stage").select("opp_id,stage"));
-    const [o, m, s] = await Promise.all(q);
-    const err = o.error || m.error || (s && s.error);
+    const [o, m, cd, s] = await Promise.all(q);
+    const err = o.error || m.error || cd.error || (s && s.error);
     if (err) { root.innerHTML = `<p class="op-sm" style="color:#c4301c">${E(sbErr(err))}</p>`; return; }
     rows = o.data || [];
+    cands = cd.data || [];
     stage = {}; if (s) (s.data || []).forEach(x => { stage[x.opp_id] = x.stage; });
     meta = {}; (m.data || []).forEach(x => { meta[x.key] = x.value; });
     draw();
