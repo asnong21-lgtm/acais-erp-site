@@ -24,9 +24,24 @@
 
   /* ── 사이드바 ── */
   .sidebar{
-    width:296px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--line);
-    position:sticky; top:0; height:100vh; overflow-y:auto; padding:22px 16px 28px;
+    width:372px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--line);
+    position:sticky; top:0; height:100vh; display:flex; overflow:hidden;
   }
+  .rail{width:76px; flex-shrink:0; background:var(--navy); display:flex; flex-direction:column; align-items:stretch; padding:14px 6px; gap:4px;}
+  .rail .rail-logo{width:46px; height:46px; margin:0 auto 12px; border-radius:12px; background:#f4efe3; color:var(--navy); font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; text-align:center; line-height:1.1;}
+  .rail-cats{display:flex; flex-direction:column; gap:4px; flex:1; overflow-y:auto;}
+  .rail-btn{display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 2px; border:none; border-radius:12px; background:none; color:#cfe0ee; cursor:pointer; font-size:11.5px; font-weight:700;}
+  .rail-btn .ic{font-size:20px; line-height:1;}
+  .rail-btn:hover{background:rgba(255,255,255,.08);}
+  .rail-btn.on{background:#f4efe3; color:var(--navy);}
+  .rail-map{display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px 2px; border-radius:12px; color:#cfe0ee; font-size:11.5px; font-weight:700;}
+  .rail-map .ic{font-size:20px; line-height:1;}
+  .rail-map:hover{background:rgba(255,255,255,.08);}
+  .panel{flex:1; min-width:0; overflow-y:auto; padding:22px 14px 28px;}
+  .cat{margin-top:14px; padding-top:12px; border-top:1px solid var(--line);}
+  .cat-title{display:flex; align-items:baseline; justify-content:space-between; margin:0 8px 4px; font-size:16px; color:var(--navy);}
+  .cat-title .cnt{font-size:11.5px; color:var(--sub); font-weight:500;}
+  .cat-title .lock{font-size:12px;}
   .brand{display:flex; align-items:center; gap:10px; font-size:19px; font-weight:800; color:var(--navy); margin:0 6px 18px;}
   .brand .logo{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--navy),var(--teal));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;}
   .map-card{display:block; background:var(--orange-bg); border:1px solid #f6d3bd; border-radius:14px; padding:14px 16px; margin-bottom:12px;}
@@ -65,6 +80,9 @@
   .mi.active{background:var(--navy); color:#fff;}
   .mi.active .d{background:#fff;}
   .empty-note{font-size:12px; color:var(--sub); padding:6px 14px;}
+  .step-label{display:flex; align-items:center; gap:8px; font-size:10.5px; font-weight:800; color:#9a5a1a; margin:12px 8px 3px 10px;}
+  .step-label::after{content:""; flex:1; height:1px; background:var(--line);}
+  .column .step-label{margin:16px 2px 6px;}
 
   /* ── 본문 ── */
   main{flex:1; min-width:0;}
@@ -192,7 +210,11 @@
 
   @media (max-width:900px){
     .app{display:block;}
-    .sidebar{position:static; width:auto; height:auto; max-height:70vh; border-right:none; border-bottom:1px solid var(--line);}
+    .sidebar{position:static; width:auto; height:auto; max-height:80vh; border-right:none; border-bottom:1px solid var(--line); flex-direction:column;}
+    .rail{width:auto; flex-direction:row; align-items:center; overflow-x:auto; padding:8px;}
+    .rail .rail-logo{margin:0 8px 0 0; flex-shrink:0;}
+    .rail-cats{flex-direction:row; flex:1; overflow:visible;}
+    .rail-btn, .rail-map{flex-direction:row; padding:8px 10px; white-space:nowrap;}
     .columns{grid-template-columns:1fr; padding:0 16px 8px;}
     header.top, .legend, .axis-block, footer{padding-left:16px; padding-right:16px;}
     .open-issues{margin-left:16px; margin-right:16px;}
@@ -285,6 +307,12 @@
 <div class="app">
 
   <aside class="sidebar">
+    <nav class="rail" id="rail" aria-label="큰 분류">
+      <div class="rail-logo" title="시민활동통합지원단">지원단</div>
+      <div class="rail-cats" id="rail-cats"></div>
+      <a class="rail-map" id="rail-map" href="#top" title="ERP 지도"><span class="ic">🗺️</span><span>ERP 지도</span></a>
+    </nav>
+    <div class="panel" id="panel">
     <div class="brand"><span class="logo">시</span>지원단 작업대</div>
     <a class="map-card" href="#top" id="map-card">
       <div class="t">🗺️ ERP 지도</div>
@@ -298,6 +326,7 @@
       <span class="pill todo">미완성</span>
     </div>
     <nav id="menu"></nav>
+    </div>
   </aside>
 
   <main id="top">
@@ -526,22 +555,36 @@ const ITEMS = [
   { id: "contract", g: "admin", name: "계약협약관리", type: "ledger", status: "todo", fields: "계약명 · 상대기관 · 유형(위탁/MOU) · 체결일 · 만료일 · 담당자" },
   { id: "deadline", g: "admin", name: "마감일통합대시보드", type: "dash", status: "todo", fields: "예산 · 계약 · 사업 탭의 마감일을 자동 집계해 D-day로 표시" },
   // ③ 인사·근태
-  { id: "attendance", g: "hr", name: "근태기록", type: "ledger", status: "wip", fields: "직원ID · 날짜 · 출퇴근시각 · 근태구분",
-    note: "연차·시간외는 이미 전자결재의 승인 문서에서 센다(연차 현황 탭 · 시간 단위) · 출퇴근 시각 기록은 아직",
-    links: [{ label: "연차 현황 보기", href: "approval.html#leave" }] },
-  { id: "payroll", g: "hr", name: "급여계산", type: "auto", status: "todo", fields: "직원ID · 급여월 · 기본급 · 수당 · 공제 · 실지급액 (근태 연동)",
-    note: "대상: 단장 포함 전 직원(2026-10-07 결정) · 연차는 시간 단위(하루 7시간) · 시간외는 승인된 결재 문서에서 센다" },
-  { id: "roster", g: "hr", name: "사람 명부", type: "ledger", status: "done",
+  { id: "roster", g: "hr", step: "", name: "사람 명부", type: "ledger", status: "done",
     fields: "이름 · 부서 · 고용형태 · 입사일 · 계약 종료일 · 근로계약서 · 교부일 + 노무 상태 배지",
     note: "🔒 실제 직원 정보가 들어가는 화면이라 내 컴퓨터에서만 엽니다 — 공개 사이트에는 올리지 않습니다" },
-  { id: "recruit", g: "hr", name: "채용관리", type: "ledger", status: "wip",
+  { id: "recruit", g: "hr", step: "뽑는다 — 채용", name: "채용 절차", type: "ledger", status: "wip",
     fields: "공고 → 지원 → 면접 → 선발 → 입사 서류",
     note: "🔒 내 컴퓨터 전용 문서입니다 — 공개 사이트에는 올리지 않습니다" },
-  { id: "labor_check", g: "hr", name: "노무 4줄 점검", type: "tool", status: "done",
-    fields: "노무 4줄 점검",
+  { id: "onboarding", g: "hr", step: "들어온다 — 입사·첫 30일", name: "입사·첫 30일", type: "ledger", status: "wip",
+    fields: "근로계약(작성 · 교부) → 4대보험 취득 → 계정(직원 가입 승인) → 첫 주 → 30일 면담 → 수습 끝나는 날 — 누가 · 언제까지 · 어디에 남기나",
+    note: "합격에서 끝나지 않는다 — 입사 서류가 노무 4줄의 근로계약서·계약 만료일 줄과 이어짐 · 체크리스트 한 장만 있고 입사자별 기록 화면은 없음 · 담당·기록 위치 대부분 「확인필요」<br>🔒 내 컴퓨터 전용 문서(지원자·직원 이름은 적지 않음)",
+    links: [{ label: "채용·입사 30일 체크리스트 열기 (내 컴퓨터 전용)", href: "채용_입사30일_체크리스트.html" }] },
+  { id: "time_sum", g: "hr", step: "일한다 — 근태·시간", name: "시간집계", type: "dash", status: "wip",
+    fields: "직원 · 월 · 연차 사용 시간 · 시간외 시간 (승인된 결재 문서에서 집계)",
+    note: "연차는 시간 단위(하루 7시간) · 연차 현황 탭이 이미 센다, 시간외 합계 화면은 아직",
+    links: [{ label: "연차 현황 보기", href: "approval.html#leave" }] },
+  { id: "attendance", g: "hr", step: "일한다 — 근태·시간", name: "근태·연차", type: "ledger", status: "wip", fields: "직원ID · 날짜 · 출퇴근시각 · 근태구분",
+    note: "연차 신청·승인은 전자결재에서 하고, 출퇴근 시각 기록은 아직 없음",
+    links: [{ label: "연차 현황 보기", href: "approval.html#leave" }] },
+  { id: "payroll", g: "hr", step: "받는다 — 급여", name: "급여대장", type: "auto", status: "todo", fields: "직원ID · 급여월 · 기본급 · 수당 · 공제 · 실지급액 (근태 연동)",
+    note: "🔒 개인별 금액이 나오는 칸 — 대표·재무만(잠금 규칙으로) · 대상: 단장 포함 전 직원(2026-10-07 결정) · 연차는 시간 단위(하루 7시간) · 시간외는 승인된 결재 문서에서 센다" },
+  { id: "payslip", g: "hr", step: "받는다 — 급여", name: "임금명세서", type: "ledger", status: "todo",
+    fields: "직원 · 급여월 · 지급 항목 · 공제 항목 · 실지급액",
+    note: "🔒 직원 본인과 대표·재무만 열람 · 4대보험·소득세 공제는 요율표 원문 없이 채우지 않음" },
+  { id: "hr_review", g: "hr", step: "계약·평가 — 만기 전에 정한다", name: "인사평가", type: "ledger", status: "todo",
+    fields: "직원 · 평가 회차 · 평가자 · 계약·수습 만기일 · 평가 의견 · 재계약 결정(만기 2주 전까지)",
+    note: "만기 날짜만 띄우면 결정이 늦어짐 — 날짜 옆에 평가 한 줄과 지금 조건을 같이 놓는다 · 계약 종료일은 사람 명부에 이미 있음 · 🔒 대표·인사만" },
+  { id: "offboarding", g: "hr", step: "나간다 — 퇴사·인수인계·계정 닫기", name: "퇴사·인수인계·계정 닫기", type: "tool", status: "done",
+    fields: "퇴사·인수인계·계정 닫기",
     note: "🔒 내 컴퓨터 전용 문서입니다 — 공개 사이트에는 올리지 않습니다" },
-  { id: "offboarding", g: "hr", name: "퇴사 처리 절차", type: "tool", status: "done",
-    fields: "퇴사 처리 절차",
+  { id: "labor_check", g: "hr", step: "기한·점검 — 모든 줄에 걸친다", name: "노무 4줄 점검", type: "tool", status: "done",
+    fields: "노무 4줄 점검",
     note: "🔒 내 컴퓨터 전용 문서입니다 — 공개 사이트에는 올리지 않습니다" },
   { id: "space_master", g: "space", name: "공간마스터", type: "master", status: "wip", fields: "key · 공간명(name) · 수용인원(cap)", note: "시트에 기본 공간 3곳이 들어 있음 · 관리 화면은 아직 없음" },
   { id: "space_rsv", g: "space", name: "공간예약", type: "ledger", status: "done", fields: "접수일시 · 공간 · 대관일자 · 시작/종료시간 · 신청자명 · 연락처 · 이메일 · 인원 · 목적 · 상태",
@@ -636,6 +679,38 @@ const DEFAULT_FAV = ["approval", "talk", "notice", "space_rsv", "suggest", "mone
 
 /* 같은 분류 안에서는 완성 → 진행중 → 미완성 순으로 놓는다(같은 상태끼리는 위 목록 순서 그대로) */
 const STATUS_ORDER = { done: 0, wip: 1, todo: 2 };
+/* 작업대(왼쪽)의 큰 분류 5개 + 그 안의 소분류(작은 제목). 지도 본문의 ①~⑧ 묶음(group)과 트리는 그대로 두고, 작업대에서만 이렇게 모아 보여 준다.
+   칸의 소분류는 칸의 step(아래 STEP_OF 또는 ITEMS 의 step)으로 정한다. 빈 제목("")은 제목 없이 맨 위. */
+const CATS = [
+  { id: "all",   t: "전사",     icon: "🏢", groups: ["tools", "gov", "common"],
+    steps: ["함께 쓴다 — 결재·대화", "정한다 — 회의·건의", "기준 — 사람·조직·잠금"] },
+  { id: "money", t: "경영·자금", icon: "🏛️", groups: ["budget", "admin"],
+    steps: ["본다 — 돈이 어디 있나", "계획한다 — 예산", "쓴다 — 집행·정산", "마감·계약 — 놓치지 않는다"] },
+  { id: "hr",    t: "인사",     icon: "👥", lock: true, groups: ["hr"],
+    steps: ["", "뽑는다 — 채용", "들어온다 — 입사·첫 30일", "일한다 — 근태·시간", "받는다 — 급여", "계약·평가 — 만기 전에 정한다", "나간다 — 퇴사·인수인계·계정 닫기", "기한·점검 — 모든 줄에 걸친다"] },
+  { id: "field", t: "사업·현장", icon: "🛠️", groups: ["program", "space", "people"],
+    steps: ["사업을 한다 — 사업·프로그램", "공간을 쓴다 — 공간·비품", "함께 키운다 — 공동체 성장·성과"] },
+  { id: "promo", t: "알리기",   icon: "📣", groups: ["comm"],
+    steps: ["알린다 — 공지·회사 소개", "받는다 — 문의·고객", "찾는다 — 지원사업·공고", "남긴다 — 홍보·성과"] },
+];
+const STEP_OF = {
+  approval: "함께 쓴다 — 결재·대화", talk: "함께 쓴다 — 결재·대화",
+  meeting_master: "정한다 — 회의·건의", meeting_log: "정한다 — 회의·건의", suggest: "정한다 — 회의·건의",
+  lock_check: "기준 — 사람·조직·잠금", staff: "기준 — 사람·조직·잠금", org: "기준 — 사람·조직·잠금", map_edit: "기준 — 사람·조직·잠금",
+  data_status: "본다 — 돈이 어디 있나", money_ledger: "본다 — 돈이 어디 있나", bank_check: "본다 — 돈이 어디 있나", pnl_line: "본다 — 돈이 어디 있나", daily_routine: "본다 — 돈이 어디 있나",
+  budget_plan: "계획한다 — 예산", budget_exec: "쓴다 — 집행·정산", settle: "쓴다 — 집행·정산",
+  contract: "마감·계약 — 놓치지 않는다", deadline: "마감·계약 — 놓치지 않는다",
+  program_master: "사업을 한다 — 사업·프로그램", program_progress: "사업을 한다 — 사업·프로그램",
+  space_master: "공간을 쓴다 — 공간·비품", space_rsv: "공간을 쓴다 — 공간·비품", equipment: "공간을 쓴다 — 공간·비품",
+  gc_community: "함께 키운다 — 공동체 성장·성과", gc_activity: "함께 키운다 — 공동체 성장·성과", gc_growth: "함께 키운다 — 공동체 성장·성과", gc_network: "함께 키운다 — 공동체 성장·성과",
+  gc_indicator: "함께 키운다 — 공동체 성장·성과", gc_flow: "함께 키운다 — 공동체 성장·성과", gc_report: "함께 키운다 — 공동체 성장·성과", gc_admin: "함께 키운다 — 공동체 성장·성과",
+  notice: "알린다 — 공지·회사 소개", company_info: "알린다 — 공지·회사 소개",
+  inquiry_ledger: "받는다 — 문의·고객", customer_ledger: "받는다 — 문의·고객", partners: "받는다 — 문의·고객",
+  opps: "찾는다 — 지원사업·공고", promo: "남긴다 — 홍보·성과", cases: "남긴다 — 홍보·성과",
+};
+const STEP_RANK = {}; CATS.forEach(c => c.steps.forEach((t, i) => { STEP_RANK[t] = i; }));
+const stepOf = (i) => (i.step != null ? i.step : STEP_OF[i.id] != null ? STEP_OF[i.id] : null);
+const stepRank = (i) => { const t = stepOf(i); return t == null ? 99 : (STEP_RANK[t] ?? 99); };
 const byStatus = (a, b) => (STATUS_ORDER[a.status] ?? 3) - (STATUS_ORDER[b.status] ?? 3);
 
 /* 기본 지도 트리를 만든다. kind: root > section > group > item */
@@ -645,8 +720,8 @@ function buildDefault() {
     const sec = { id: s.id, kind: "section", t: s.t, tag: s.tag, cls: s.cls, desc: s.desc, c: s.c, side: s.side, kids: [] };
     s.groups.forEach(g => {
       const grp = { id: g, kind: "group", t: GROUP_TITLES[g], c: null, kids: [] };
-      ITEMS.filter(i => i.g === g).sort((a, b) => (a.bottom ? 1 : 0) - (b.bottom ? 1 : 0) || byStatus(a, b)).forEach(i => grp.kids.push({
-        id: i.id, kind: "item", t: i.name, st: i.status, type: i.type, fields: i.fields,
+      ITEMS.filter(i => i.g === g).sort((a, b) => (a.bottom ? 1 : 0) - (b.bottom ? 1 : 0) || (stepRank(a) - stepRank(b) || byStatus(a, b))).forEach(i => grp.kids.push({
+        id: i.id, kind: "item", t: i.name, st: i.status, type: i.type, fields: i.fields, step: stepOf(i),
         note: i.note || "", links: i.links || [], action: i.action || null, c: null, kids: [],
       }));
       sec.kids.push(grp);
@@ -776,7 +851,18 @@ function itemRow(it) {
     <button class="star ${on ? "on" : ""}" data-star="${it.id}" title="즐겨찾기">${on ? "★" : "☆"}</button>
   </div>`;
 }
-function groupBlock(key, title, color, all, shown) {
+/** 소분류(step)가 바뀔 때마다 작은 제목을 끼워 넣는다. step 이 없는 칸은 앞 칸의 소분류를 따른다 */
+function withSteps(items, rowFn) {
+  let last = null, out = "";
+  items.forEach(it => {
+    const st = it.step == null ? last : it.step;
+    if (st !== last && st) out += `<div class="step-label">${esc(st)}</div>`;
+    last = st;
+    out += rowFn(it);
+  });
+  return out;
+}
+function groupBlock(key, title, color, all, shown) {   // 즐겨찾기 묶음(접고 펴는 것) 전용
   const isOpen = query ? true : openGroups.has(key);
   const chip = color ? `<span class="chip" style="background:${color}"></span>` : "";
   return `<div class="grp ${isOpen ? "open" : ""}">
@@ -786,22 +872,38 @@ function groupBlock(key, title, color, all, shown) {
     <div class="grp-body">${shown.map(itemRow).join("") || `<div class="empty-note">등록된 화면이 없습니다</div>`}</div>
   </div>`;
 }
+/** 큰 분류별로 칸을 모은다. 어느 분류에도 안 든 묶음(편집기에서 새로 만든 것)은 「그 밖에」로 */
+function catsWithItems() {
+  const groupItems = {}; const order = [];
+  TREE.kids.forEach(sec => groupsOf(sec).forEach(g => { groupItems[g.id] = g.kids.filter(k => k.kind === "item"); order.push(g.id); }));
+  const used = new Set(); CATS.forEach(c => c.groups.forEach(g => used.add(g)));
+  const rest = order.filter(g => !used.has(g));
+  const list = CATS.map(c => Object.assign({}, c, { items: [].concat(...c.groups.map(g => groupItems[g] || [])) }));
+  const extra = [].concat(...rest.map(g => groupItems[g]));
+  if (extra.length) list.push({ id: "etc", t: "그 밖에", icon: "📁", groups: rest, steps: [], items: extra });
+  list.forEach(c => { c.items = c.items.map((it, i) => [it, i]).sort((x, y) => stepRank(x[0]) - stepRank(y[0]) || x[1] - y[1]).map(x => x[0]); });
+  return list;
+}
+let activeCat = "all";
+function renderRail(list) {
+  $("#rail-cats").innerHTML = list.map(c => `<button type="button" class="rail-btn ${activeCat === c.id ? "on" : ""}" data-cat="${c.id}" title="${esc(c.t)}"><span class="ic">${c.icon}</span><span class="tx">${esc(c.t)}</span></button>`).join("");
+}
 function renderMenu() {
   const q = query.trim().toLowerCase();
-  const gTitle = {}; walk(TREE, n => { if (n.kind === "group") gTitle[n.id] = n.t; });
   const groupOfItem = {}; walk(TREE, (n, p) => { if (n.kind === "item" && p) groupOfItem[n.id] = p.t; });
-  const match = (it) => !q || (it.t + " " + (it.fields || "") + " " + (groupOfItem[it.id] || "")).toLowerCase().includes(q);
+  const match = (it) => !q || (it.t + " " + (it.fields || "") + " " + (groupOfItem[it.id] || "") + " " + (it.step || "")).toLowerCase().includes(q);
+  const list = catsWithItems();
+  renderRail(list);
   let html = "";
   const favAll = allItems().filter(i => fav.has(i.id));
   html += groupBlock("fav", "즐겨찾기", null, favAll, favAll.filter(match));
-  TREE.kids.forEach(sec => {
-    let part = "";
-    groupsOf(sec).forEach(g => {
-      const all = g.kids.filter(k => k.kind === "item"), shown = all.filter(match);
-      if (q && !shown.length) return;
-      part += groupBlock(g.id, g.t, COLOR[g.id], all, shown);
-    });
-    if (part) html += `<div class="axis-label">${esc(sec.t)}</div>` + part;
+  list.forEach(c => {
+    const shown = c.items.filter(match);
+    if (q && !shown.length) return;
+    html += `<section class="cat" id="cat-${c.id}" data-cat="${c.id}">
+      <h3 class="cat-title"><span>${esc(c.t)}${c.lock ? ` <span class="lock" title="개인 정보 · 열람 범위를 잠금으로 제한">🔒</span>` : ""}</span><span class="cnt">${cntOf(c.items)}</span></h3>
+      ${withSteps(shown, itemRow) || `<div class="empty-note">등록된 화면이 없습니다</div>`}
+    </section>`;
   });
   if (q && !allItems().some(match)) html = `<div class="empty-note">"${esc(query)}"에 맞는 화면이 없습니다</div>`;
   $("#menu").innerHTML = html;
@@ -842,7 +944,7 @@ function renderBoard() {
         const its = g.kids.filter(k => k.kind === "item");
         return `<div class="column" id="col-${g.id}">
           <div class="column-head" style="border-bottom-color:${COLOR[g.id]}"><h3>${esc(g.t)}</h3><span class="count">${cntOf(its)}</span></div>
-          ${its.map(cardHtml).join("")}
+          ${withSteps(its, cardHtml)}
         </div>`;
       }).join("")}
     </div>`).join("");
@@ -959,6 +1061,21 @@ $("#menu").addEventListener("click", (e) => {
   if (mi) openItem(mi.dataset.id);
 });
 $("#menu-search").addEventListener("input", (e) => { query = e.target.value; renderMenu(); });
+function scrollToCat(id) {
+  const pn = $("#panel"), el = document.getElementById("cat-" + id); if (!el) return;
+  pn.scrollTo({ top: el.getBoundingClientRect().top - pn.getBoundingClientRect().top + pn.scrollTop - 8 });
+  activeCat = id; document.querySelectorAll(".rail-btn").forEach(b => b.classList.toggle("on", b.dataset.cat === id));
+}
+$("#rail").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-cat]");
+  if (b) { if (query) { query = ""; $("#menu-search").value = ""; renderMenu(); } scrollToCat(b.dataset.cat); return; }
+  if (e.target.closest("#rail-map")) { e.preventDefault(); selected = null; closeEditor(); renderMenu(); }
+});
+$("#panel").addEventListener("scroll", () => {      // 작업대를 내리면 지금 보는 큰 분류가 레일에서 켜진다
+  const pn = $("#panel"), top = pn.getBoundingClientRect().top + 70; let cur = null;
+  pn.querySelectorAll(".cat").forEach(el => { if (el.getBoundingClientRect().top <= top) cur = el.dataset.cat; });
+  if (cur && cur !== activeCat) { activeCat = cur; document.querySelectorAll(".rail-btn").forEach(b => b.classList.toggle("on", b.dataset.cat === cur)); }
+}, { passive: true });
 $("#map-card").addEventListener("click", (e) => { e.preventDefault(); selected = null; closeEditor(); renderMenu(); });
 $("#ed-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
 $("#lg-back").addEventListener("click", (e) => { e.preventDefault(); closeEditor(); });
