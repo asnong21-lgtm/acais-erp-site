@@ -484,7 +484,7 @@ const PALETTE = ["#16324f", "#2f6fed", "#2f8f7c", "#4a7c45", "#e8631c", "#b3503a
 
 const GROUP_TITLES = {
   budget: "① 예산·정산", admin: "② 행정·마감", hr: "③ 인사·근태", space: "④ 자원·공간",
-  program: "⑤ 사업·프로그램", people: "⑥ 참여자·성장지원", gov: "⑦ 거버넌스·의사결정", comm: "⑧ 소통·확산",
+  program: "⑤ 사업·프로그램", people: "⑥ 공동체 성장·성과관리", gov: "⑦ 거버넌스·의사결정", comm: "⑧ 소통·확산",
   tools: "전사도구", common: "설정",
 };
 
@@ -493,7 +493,7 @@ const SECTIONS_DEF = [
     desc: "안성시 위탁사업 수행기관으로서의 책임과 행정 — 예산·정산, 행정·마감, 인사·근태, 자원·공간",
     groups: ["budget", "admin", "hr", "space"] },
   { id: "sec_B", t: "B. 활동 축", tag: "결사체적 성격", cls: "act", c: "#7a4fd1", side: "L",
-    desc: "시민·단체·마을과 함께 만들어가는 관계와 참여 — 사업·프로그램, 참여자·성장지원, 거버넌스·의사결정, 소통·확산",
+    desc: "시민·단체·마을과 함께 만들어가는 관계와 참여 — 사업·프로그램, 공동체 성장·성과관리, 거버넌스·의사결정, 소통·확산",
     groups: ["program", "people", "gov", "comm"] },
   { id: "sec_C", t: "공통", tag: "", cls: "", c: "#16324f", side: "R",
     desc: "모든 직원이 함께 쓰는 전사도구(전자결재·단톡), 모든 화면의 기준이 되는 직원·조직 정보와 ERP 지도 편집",
@@ -551,13 +551,32 @@ const ITEMS = [
   // ⑤ 사업·프로그램
   { id: "program_master", g: "program", name: "사업마스터", type: "master", status: "todo", fields: "사업ID · 사업명 · 소속센터 · 담당자 · 기간 · 예산연계 · 개요" },
   { id: "program_progress", g: "program", name: "사업진행상황", type: "ledger", status: "todo", fields: "사업ID · 진행률 · 이슈 · 최종보고여부" },
-  // ⑥ 참여자·성장지원
-  { id: "pmaster", g: "people", name: "참여자마스터", type: "master", status: "todo", fields: "참여자ID · 유형(개인/단체/기업/마을공동체) · 이름 · 연락처 · 담당센터 · 상태" },
-  { id: "prelation", g: "people", name: "참여자관계(전환이력)", type: "ledger", status: "todo", fields: "조직참여자ID · 관련개인참여자ID · 관계유형(설립자 등) · 전환일" },
-  { id: "phistory", g: "people", name: "참여이력", type: "ledger", status: "todo", fields: "참여자ID · 사업ID · 참여일 · 역할" },
-  { id: "psupport", g: "people", name: "성장지원내역", type: "ledger", status: "todo", fields: "참여자ID · 지원유형(컨설팅/자금/교육) · 지원일 · 내용" },
-  { id: "peval", g: "people", name: "성장진단평가", type: "ledger", status: "todo", fields: "참여자ID · 평가회차 · 평가주체 · 평가자 · 6대지표 점수 · 코멘트 · 종합의견",
-    note: "6대 지표: 민주적 관리 · 재정자립 · 독립성 · 교육훈련및정보제공 · 타조직연대 · 지역사회기여<br>반기 1·2회차 = 담당직원 평가 / 연 1회 종합 = 자가진단+외부평가위원 병행" },
+  // ⑥ 공동체 성장·성과관리
+  // (2026-11-09 변경) 개인 참여자 명부 → 공동체 단위 성장·성과관리. 수파베이스 acais-erp 017_community_growth.sql · 화면 site/community.html (단장·사무국·센터 담당·공동체 담당자 로그인)
+  { id: "gc_community", g: "people", name: "공동체 목록·개요", type: "master", status: "wip", fields: "공동체명 · 담당센터 · 활동권역 · 주요분야 · 결성연도 · 상태(활동중/휴면/종료) · 소개 — 연도별 제출 현황 한눈에",
+    note: "개인 이름·연락처는 받지 않고 공동체 단위로만 기록 · 센터 담당은 자기 센터 공동체만, 공동체 담당자는 자기 공동체만 보임<br>DB 규칙(권한 · 잠금 · 이력) 시험 통과 · 실제 계정 로그인 시험은 아직",
+    links: [{ label: "공동체 성장·성과관리 열기 (로그인)", href: "community.html" }] },
+  { id: "gc_activity", g: "people", name: "참여 현황 · 활동 기록 · 사업 이력", type: "ledger", status: "wip", fields: "연도별 참여자 수(전체/정기/신규/지속) · 활동일·활동명·유형·인원·주민 주도성 · 사업 신청/선정/금액/수행/후속 성과",
+    note: "연도별로 쌓고 덮어쓰지 않음 · 삭제는 숨김 처리(이력 남음) · 미신청 사업에 선정 금액 입력 불가",
+    links: [{ label: "열기 (로그인)", href: "community.html" }] },
+  { id: "gc_growth", g: "people", name: "성장 진단 (5영역)", type: "ledger", status: "wip", fields: "조직화 · 역량 · 연대 · 자치 · 자립 × 단계(형성/조직화/자치·안정화/연대·확장) · 점수 1~5 · 판단 근거(필수) · 지원 필요사항 · 평가 주체 · 회차",
+    note: "재평가는 회차 번호를 올려 새로 입력(기존 기록은 그대로) · 공동체 순위 화면은 없음 — 단계 분포만 봄",
+    links: [{ label: "열기 (로그인)", href: "community.html" }] },
+  { id: "gc_network", g: "people", name: "연대·협력 · 관계망 · 자치 · 자립", type: "ledger", status: "wip", fields: "협력 활동·상대(등록 공동체 또는 임시 기관명) · 상호성/신뢰/분산/갈등 조정 · 주민 결정·역할 분산·운영 규칙·외부 의존 · 자원 유형·규모·지역 내 순환",
+    note: "점수 방향 주의: 대부분 높을수록 긍정이지만 「외부 의존 정도」는 높을수록 의존이 큼(낮을수록 자치) — 화면에 방향을 적어 둠",
+    links: [{ label: "열기 (로그인)", href: "community.html" }] },
+  { id: "gc_indicator", g: "people", name: "지표 정의 · 지표 입력 · 증빙", type: "ledger", status: "wip", fields: "지표(코드·정의·측정방법·자료형·주기·필수·적용연도) · 연도별 값+근거 · 증빙 파일(비공개 20MB·공개 범위·보관 기한·활동/사업/지표에 연결)",
+    note: "시작 지표 6개는 <b>초안</b>(민주적 관리 · 재정자립 · 독립성 · 교육훈련및정보제공 · 타조직연대 · 지역사회기여) — 정의 확정 후 필수로 바꿈 · 지표는 지우지 않고 적용 종료 연도로 끝냄",
+    links: [{ label: "열기 (로그인)", href: "community.html" }] },
+  { id: "gc_flow", g: "people", name: "제출 · 검토 · 확정", type: "auto", status: "wip", fields: "작성중 → 제출 → 검토중 → 보완요청 → 확정 · 필수 지표 비면 제출 불가 · 제출하면 그 해 자료 잠금 · 제출한 사람은 확정 못 함 · 확정 취소는 단장·사무국(사유 필수)",
+    note: "DB 시험 통과: 제출 후 수정 차단 · 타 센터 확정 차단 · 열람자 입력 차단 · 방문자 차단",
+    links: [{ label: "검토함 열기 (로그인)", href: "community.html" }] },
+  { id: "gc_report", g: "people", name: "요약 보고서 (비식별)", type: "dash", status: "wip", fields: "공동체 수 · 제출 상태 · 성장 단계 분포 · 사업 신청 결과 · 참여자 합계 · 활동 건수 — 열람자는 3 미만 칸 가림",
+    note: "엑셀 내려받기·PDF는 아직(다음 단계) · 순위 없음",
+    links: [{ label: "열기 (로그인)", href: "community.html" }] },
+  { id: "gc_admin", g: "people", name: "지표·코드·담당자·변경 이력", type: "tool", status: "wip", fields: "코드 값 추가 · 지표 정의 · 공동체 담당자/열람자 계정 연결 · 사용 중지 · 변경 이력(누가 언제 무엇을)",
+    note: "계정은 「직원 권한 관리」에서 pending 으로 만든 뒤 여기서 공동체에 연결 · 활동권역/주요분야 코드는 비어 있음 [확인필요]<br>🔒 운영 안내: 내 컴퓨터 전용 문서",
+    links: [{ label: "열기 (단장·사무국 로그인)", href: "community.html" }] },
   // ⑦ 거버넌스·의사결정
   { id: "meeting_master", g: "gov", name: "회의체마스터", type: "master", status: "todo", fields: "회의체명(운영위원회/협의체/총회) · 구성 · 소관" },
   { id: "meeting_log", g: "gov", name: "회의기록", type: "ledger", status: "todo", fields: "회의체ID · 일시 · 참석자 · 안건 · 의결사항 · 회의록링크" },
