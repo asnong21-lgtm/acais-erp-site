@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>공동체 성장·성과관리 - 시민활동통합지원단</title>
+<style>
+  :root{ --navy:#16324f; --ink:#1f2430; --sub:#6b7280; --line:#e3e6eb; --bg:#f4f5f7; --teal:#0f766e; --red:#c4301c; --amber:#8a6200; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:"Pretendard","Malgun Gothic","Apple SD Gothic Neo",sans-serif; line-height:1.6; font-size:14px; }
+  a{ color:#2757a6; }
+  header.gc{ background:var(--navy); color:#fff; padding:10px 16px; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; justify-content:space-between; }
+  header.gc h1{ font-size:16px; margin:0; }
+  header.gc a{ color:#cfe0ee; font-size:12px; margin-right:10px; }
+  header.gc .who{ font-size:12px; color:#cfe0ee; display:flex; gap:8px; align-items:center; }
+  nav.gc{ background:#fff; border-bottom:1px solid var(--line); padding:0 12px; display:flex; flex-wrap:wrap; gap:2px; position:sticky; top:0; z-index:5; }
+  nav.gc button{ border:0; background:none; padding:11px 12px; font-size:13.5px; cursor:pointer; color:var(--sub); border-bottom:3px solid transparent; font-family:inherit; }
+  nav.gc button.on{ color:var(--navy); font-weight:700; border-bottom-color:var(--navy); }
+  main{ max-width:1080px; margin:0 auto; padding:16px 14px 60px; }
+  .card{ background:#fff; border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:14px; }
+  .card h2{ font-size:15px; margin:0 0 8px; } .card h3{ font-size:14px; margin:12px 0 6px; }
+  .note{ background:#fff4d6; border:1px solid #f0d78a; border-radius:10px; padding:8px 12px; font-size:12.5px; color:#5b4a00; margin-bottom:12px; }
+  .sub{ color:var(--sub); font-size:12.5px; }
+  .err{ color:var(--red); font-size:13px; margin:6px 0; white-space:pre-wrap; } .ok{ color:var(--teal); font-size:13px; margin:6px 0; }
+  .tw{ overflow-x:auto; } table{ border-collapse:collapse; width:100%; font-size:13px; }
+  th{ background:#f3f5f8; text-align:left; padding:7px 9px; border:1px solid var(--line); font-size:12px; white-space:nowrap; }
+  td{ padding:7px 9px; border:1px solid var(--line); vertical-align:top; }
+  button.b, a.b{ display:inline-block; border:1px solid var(--navy); background:var(--navy); color:#fff; border-radius:8px; padding:6px 12px; font-size:13px; cursor:pointer; font-family:inherit; text-decoration:none; }
+  button.b.g{ background:#fff; color:var(--navy); } button.b.r{ background:#fff; color:var(--red); border-color:var(--red); } button.b.s{ padding:3px 8px; font-size:12px; }
+  button.b[disabled]{ opacity:.5; cursor:not-allowed; }
+  input, select, textarea{ font:inherit; padding:6px 8px; border:1px solid #cfd5dd; border-radius:8px; width:100%; background:#fff; }
+  textarea{ min-height:64px; resize:vertical; } label{ display:block; font-size:12.5px; font-weight:600; margin:10px 0 3px; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:0 14px; }
+  .pill{ display:inline-block; padding:1px 9px; border-radius:10px; font-size:12px; border:1px solid var(--line); background:#f3f5f8; white-space:nowrap; }
+  .pill.작성중{ background:#eef1f5; } .pill.제출{ background:#e3efff; } .pill.검토중{ background:#e9e3ff; } .pill.보완요청{ background:#fff0d6; } .pill.확정{ background:#dff3e8; }
+  .tabs{ display:flex; flex-wrap:wrap; gap:4px; margin-bottom:12px; }
+  .tabs button{ border:1px solid var(--line); background:#fff; border-radius:16px; padding:4px 12px; font-size:12.5px; cursor:pointer; font-family:inherit; }
+  .tabs button.on{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .row{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .login{ max-width:380px; margin:50px auto; }
+  .kpi{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; }
+  .kpi div{ background:#f3f5f8; border-radius:10px; padding:10px 12px; } .kpi b{ font-size:20px; display:block; }
+  @media (max-width:720px){ main{ padding:12px 10px 50px; } }
+</style>
+</head>
+<body>
+<header class="gc">
+  <div>
+    <h1>🌱 공동체 성장·성과관리</h1>
+    <div style="margin-top:3px;"><a href="erp-map.html">← ERP 지도</a><a href="admin.html">운영관리자</a></div>
+  </div>
+  <div class="who" id="who"></div>
+</header>
+<nav class="gc" id="nav" style="display:none;"></nav>
+<main id="app"><div class="card"><p class="sub">불러오는 중...</p></div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/sb.js"></script>
+<script src="assets/community.js"></script>
+</body>
+</html>
