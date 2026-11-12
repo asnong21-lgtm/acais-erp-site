@@ -67,7 +67,8 @@
   const say = (ok, err) => { S.msg = ok || ""; S.err = err || ""; };
   const msgHtml = () => (S.err ? `<div class="err">${E(S.err)}</div>` : "") + (S.msg ? `<div class="ok">${E(S.msg)}</div>` : "");
   const pill = (s) => `<span class="pill ${E(s)}">${E(s)}</span>`;
-  const fmtDate = (d) => (d ? String(d).slice(0, 10) : "");
+  const fmtDate = (d) => { if (!d) return ""; const t = String(d); if (t.indexOf("T") < 0) return t.slice(0, 10); const x = new Date(t); if (isNaN(x)) return t.slice(0, 10); return x.getFullYear() + "-" + String(x.getMonth() + 1).padStart(2, "0") + "-" + String(x.getDate()).padStart(2, "0"); };
+  const fmtTime = (d) => { const x = new Date(d); if (isNaN(x)) return String(d || ""); return fmtDate(d) + " " + String(x.getHours()).padStart(2, "0") + ":" + String(x.getMinutes()).padStart(2, "0"); };
   const yearOptions = () => { let h = ""; for (let y = NOW + 1; y >= 2024; y--) h += `<option value="${y}"${y === S.year ? " selected" : ""}>${y}년</option>`; return h; };
 
   /* ───────── 시작 · 로그인 ───────── */
@@ -493,7 +494,7 @@
         <div><label>역할</label><select name="r" id="cur"><option value="community">공동체 담당자</option><option value="viewer">보고서 열람자</option></select></div>
         <div><label>공동체 (담당자일 때)</label><select name="c"><option value="">(선택)</option>${S.comms.map((c) => `<option value="${c.community_id}">${E(c.community_name)}</option>`).join("")}</select></div>
         <div style="align-self:end;"><button class="b">연결</button></div></form><div class="err" id="cuerr"></div>${pend.length ? "" : `<p class="sub">연결할 승인 대기 계정이 없습니다.</p>`}</div>
-    <div class="card"><h2>변경 이력 (최근 60건)</h2><div class="tw"><table><thead><tr><th>시각</th><th>대상</th><th>행동</th><th>내용</th></tr></thead><tbody>${aud.map((a) => `<tr><td>${E(String(a.changed_at).slice(0, 16).replace("T", " "))}</td><td>${E(a.entity_type)}#${a.entity_id}</td><td>${E(a.action_type)}</td><td>${E(a.change_summary || "")}</td></tr>`).join("")}</tbody></table></div></div>`);
+    <div class="card"><h2>변경 이력 (최근 60건)</h2><div class="tw"><table><thead><tr><th>시각</th><th>대상</th><th>행동</th><th>내용</th></tr></thead><tbody>${aud.map((a) => `<tr><td>${E(fmtTime(a.changed_at))}</td><td>${E(a.entity_type)}#${a.entity_id}</td><td>${E(a.action_type)}</td><td>${E(a.change_summary || "")}</td></tr>`).join("")}</tbody></table></div></div>`);
     $("#indnew").onclick = () => indForm(null);
     document.querySelectorAll("[data-ind]").forEach((b) => (b.onclick = () => indForm(inds.find((x) => String(x.indicator_id) === b.dataset.ind))));
     $("#cdf").onsubmit = async (e) => {
