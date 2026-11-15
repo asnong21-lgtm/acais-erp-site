@@ -68,11 +68,11 @@
         <td>${E(c.org)}</td>${kind === "check" ? `<td>${E(c.note)}</td>` : ""}</tr>`).join("") + "</tbody></table></div>";
   }
 
-  function table(items) {
+  function table(items, withStage) {   // withStage: 직원 화면에서 진행 상태 버튼을 둘지(지난 공고 칸에는 두지 않는다 — 접은 내용은 두 화면이 똑같다)
     const list = items.slice().sort((a, b) => (KIND_RANK[a.kind] - KIND_RANK[b.kind]) || ((a.close_on || "9999") < (b.close_on || "9999") ? -1 : 1));
     return `<div class="op-wrap"><table><thead><tr><th style="width:27%">공고</th><th style="width:96px">마감</th>${HEAD.map(h => `<th>${h}</th>`).join("")}<th>판정</th></tr></thead><tbody>` +
       list.map(g => `<tr><td>${kindTag(g.kind)}<b>${E(g.title)}</b><br><span class="op-sm">${E(g.org)}</span>${g.url ? ` <a href="${E(g.url)}" target="_blank" rel="noopener" style="font-size:12px">공고 보기 ↗</a>` : ""}
-          ${pub() ? "" : `<div class="op-stage" data-id="${E(g.id)}">${STAGES.map(s => `<button type="button" data-st="${s[0]}"${s[0] === stageOf(g.id) ? ' class="on"' : ""}>${s[1]}</button>`).join("")}</div>`}</td>
+          ${pub() || withStage === false ? "" : `<div class="op-stage" data-id="${E(g.id)}">${STAGES.map(s => `<button type="button" data-st="${s[0]}"${s[0] === stageOf(g.id) ? ' class="on"' : ""}>${s[1]}</button>`).join("")}</div>`}</td>
         <td>${dday(g.close_on)}</td>
         ${g.cells.map(c => `<td>${chip(c[0])}<div class="op-cellnote">${E(c[1])}</div></td>`).join("")}
         <td>${vchip(verdict(g.cells))}</td></tr>`).join("") + `</tbody></table></div>` +
@@ -132,7 +132,7 @@
       <div class="op-box"><h2>정부지원사업 — 기업마당 (수주 → 현금성 → 교육·컨설팅 → 지정·제도 순)</h2>
         <p class="op-sm" style="margin:0 0 8px">칸 5개: 소재지 · 규모 · 업종 · 업력 · 제외·재무. 요건은 <b>첨부 공고문(.hwp · .pdf)</b>에 있어서 「모름」이 많이 나옵니다. 지원단은 기업이 아니라 위탁 운영 기관이라 ✗ 도 나오는데, 그 공고가 센터가 만나는 시민 · 조직에게는 맞을 수 있어 아래 「뒤집어 읽기」에서 다시 봅니다.</p>
         ${live().length ? table(live()) : '<p class="op-sm" style="margin:0 0 8px">마감 전인 판정 공고가 없습니다. 위 「오늘의 후보」에서 마음에 드는 공고를 골라 새로 판정하세요.</p>'}
-        ${past().length ? `<details style="margin-top:14px"><summary style="cursor:pointer;font-size:13px;font-weight:700">지난 공고 ${past().length}건 — 마감이 지나 통계 · 전화할 칸 · 캘린더에서 뺐습니다(판정 기록은 남겨 둡니다)</summary><div style="margin-top:10px">${table(past())}</div></details>` : ""}</div>
+        ${past().length ? `<details style="margin-top:14px"><summary style="cursor:pointer;font-size:13px;font-weight:700">지난 공고 ${past().length}건 — 마감이 지나 통계 · 전화할 칸 · 캘린더에서 뺐습니다(판정 기록은 남겨 둡니다)</summary><div style="margin-top:10px">${table(past(), false)}</div></details>` : ""}</div>
       <div class="op-box"><h2>공공입찰 — 나라장터 (키 연결 전)</h2>
         <p class="op-sm" style="margin:0">나라장터 키(<code>NARA_KEY</code>)를 받으면 같은 방식으로 이 칸에 채웁니다. 투찰가 · 하한율 · 낙찰 전략은 다루지 않습니다.</p></div>
       <div class="op-box"><h2>뒤집어 읽기 — 이 공고가 우리 센터가 만나는 사람에게 무엇을 주나</h2>
