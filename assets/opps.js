@@ -86,7 +86,7 @@
       ["이번 주 마감", week.length]];
     if (!pub()) c.push(["아직 안 본 것", open.filter(g => stageOf(g.id) === "found").length]);
     return `<div class="op-sum">${c.map(x => `<div class="op-stat"><b>${x[1]}건</b><span>${x[0]}</span></div>`).join("")}</div>
-      <p class="op-sm" style="margin:0 0 12px">${pub() ? "✗ 로 판정된 것은 세지 않습니다." : "✗ 로 판정된 것과 「넣지 않음」은 세지 않습니다. 상태를 바꾸면 숫자가 바뀝니다."}</p>`;
+      <p class="op-sm" style="margin:0 0 12px">✗ 로 판정된 것과 마감이 지난 공고는 세지 않습니다.${pub() ? "" : " (직원 화면: 「넣지 않음」으로 표시한 공고도 세지 않고, 상태를 바꾸면 숫자가 바뀝니다.)"}</p>`;
   }
 
   function callRows() {
@@ -111,7 +111,7 @@
     css();
     const cal = icsData(), calls = callRows(), f = meta.funnel, r = meta.radar, links = meta.radar_links;
     root.innerHTML = `
-      <div class="op-note">${pub() ? "<b>누구나 볼 수 있는 화면입니다.</b>" : "<b>단장 · 사무국 화면입니다 — 진행 상태를 함께 적습니다.</b>"} 공고를 우리 지원단(안성시 위탁 중간지원조직) 기준으로 ✓ ✗ 모름으로 판정한 표입니다.
+      <div class="op-note"><b>우리 지원단 기준 판정 장부입니다.</b> 공고를 우리 지원단(안성시 위탁 중간지원조직) 기준으로 ✓ ✗ 모름으로 판정한 표입니다.
         판정은 공고 요약 기준이라 <b>마감 · 자격 · 한도는 신청 직전 첨부 공고문 원문과 담당기관 문의로 다시 확인</b>합니다. 법인 형태 · 업종 · 설립연도는 아직 몰라 「모름」입니다.</div>
       ${stats()}
       ${r ? `<div class="op-box"><h2>자동 레이더 — 매일 아침 후보가 이슈로 올라옵니다</h2>
@@ -142,7 +142,7 @@
         <div class="op-wrap"><table style="min-width:760px"><thead><tr><th style="width:30%">공고</th><th style="width:12%">칸</th><th>물어볼 것</th><th style="width:24%">어디에</th></tr></thead><tbody>${calls.map(c => `<tr><td>${E(short(c[0].title, 30))}</td><td>${E(c[1])}</td><td>${E(c[2])}</td><td>${E(c[0].contact)}</td></tr>`).join("")}</tbody></table></div>
         <div class="op-sm" style="margin-top:8px">✗ 로 끝난 공고는 빠집니다. 먼저 첨부 공고문에서 찾아보고, 없으면 전화합니다. 법인 형태 · 업종 · 설립연도는 공고가 아니라 <b>우리 쪽 정보</b>라서 먼저 확인합니다.</div></div>
       <div class="op-box"><h2>마감 캘린더에 넣기</h2>
-        <p class="op-sm" style="margin:0 0 8px">✗ 가 아니${pub() ? "" : "고 「넣지 않음」도 아닌"} 공고 중 <b>마감 날짜가 있는 ${cal.n}건</b>을 캘린더 파일(.ics)로 내려받습니다. 구글 캘린더에 가져오면 <b>14일 전 · 7일 전 알림</b>이 함께 들어갑니다. 「예산 소진시까지」 공고는 날짜가 없어 빠집니다.</p>
+        <p class="op-sm" style="margin:0 0 8px">✗ 가 아닌 마감 전 공고 중 <b>마감 날짜가 있는 ${cal.n}건</b>을 캘린더 파일(.ics)로 내려받습니다. 구글 캘린더에 가져오면 <b>14일 전 · 7일 전 알림</b>이 함께 들어갑니다. 「예산 소진시까지」 공고는 날짜가 없어 빠집니다.</p>
         ${cal.n ? `<button type="button" class="op-btn" id="op-ics">📅 마감 ${cal.n}건 캘린더 파일 내려받기</button>` : '<p class="op-sm" style="margin:0">지금은 마감 날짜가 있고 ✗ 가 아닌 공고가 없어 내려받을 파일이 없습니다.</p>'}</div>
       <div class="op-note" style="background:#eef3ff;border-color:#c7d6f5"><b>규칙 한 줄</b> — 한 칸이라도 ✗ 이면 ✗ · ✗ 없이 모름이 있으면 「모름(확인 필요)」 · 전부 ✓ 일 때만 ✓. 모름은 ✓로 올리지 않습니다.</div>`;
     root.querySelectorAll(".op-stage").forEach(box => box.addEventListener("click", async e => {
